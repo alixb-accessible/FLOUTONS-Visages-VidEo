@@ -14,12 +14,13 @@
         .btn{transition:all .3s}.btn:focus{outline:0;box-shadow:0 0 0 4px rgba(59,130,246,.5)}.btn:disabled{opacity:.5;cursor:not-allowed}
         @keyframes spin{to{transform:rotate(360deg)}}.animate-spin{animation:spin 1s linear infinite}
         .video-wrap{position:relative;display:inline-block;max-width:100%}
-        .overlay-canvas{position:absolute;top:0;left:0;cursor:crosshair;pointer-events:auto}
-        .zone{position:absolute;border:3px solid #3b82f6;border-radius:50%;cursor:move;background:rgba(59,130,246,.1)}
+        .overlay-canvas{position:absolute;top:0;left:0;pointer-events:none}
+        .zone{position:absolute;border:3px solid #3b82f6;border-radius:50%;cursor:move;background:rgba(59,130,246,.1);pointer-events:auto}
         .zone:hover{border-color:#2563eb;background:rgba(59,130,246,.2)}.zone.sel{border-color:#ef4444;background:rgba(239,68,68,.2)}
         .handle{position:absolute;bottom:-6px;right:-6px;width:12px;height:12px;background:#fff;border:2px solid #3b82f6;border-radius:50%;cursor:nwse-resize}
         .del{position:absolute;top:-10px;right:-10px;width:24px;height:24px;background:#ef4444;color:#fff;border-radius:50%;border:2px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700}
         .del:hover{background:#dc2626}
+        .draw-area{position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair;z-index:10}
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -29,40 +30,44 @@
 
 <div class="mb-6 border border-gray-300 rounded-lg">
 <button id="help-toggle" class="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-t-lg flex items-center justify-between" aria-expanded="false">
-<span class="font-semibold text-gray-700">ℹ️ Mode d'emploi</span>
-<svg id="help-icon" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+<span class="font-semibold text-gray-700">Mode d'emploi</span>
+<svg id="help-icon" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
 </button>
 <div id="help-content" class="hidden px-4 py-3 text-sm space-y-3">
-<div><h3 class="font-semibold text-blue-600">💻 Sur ordinateur :</h3>
+<div><h3 class="font-semibold text-blue-600 mb-2">Sur ordinateur</h3>
 <ol class="list-decimal list-inside ml-2 space-y-1">
 <li>Importez votre vidéo</li>
-<li>Cliquez "Détecter" pour l'auto-détection</li>
-<li><strong>Ajouter :</strong> Cliquez + glissez sur la vidéo</li>
-<li><strong>Déplacer :</strong> Glissez le centre</li>
-<li><strong>Redimensionner :</strong> Point blanc en bas à droite</li>
-<li><strong>Supprimer :</strong> ✕ rouge ou touche Suppr</li>
-<li>Ajustez le flou puis cliquez "Traiter"</li>
+<li>Cliquez sur Détecter les visages pour la détection automatique</li>
+<li>Les visages détectés apparaissent entourés d'ovales bleus</li>
+<li><strong>Ajouter un ovale :</strong> Cliquez sur la vidéo et glissez pour créer une nouvelle zone</li>
+<li><strong>Déplacer un ovale :</strong> Cliquez au centre et glissez</li>
+<li><strong>Redimensionner :</strong> Utilisez le point blanc en bas à droite</li>
+<li><strong>Supprimer :</strong> Cliquez sur le bouton rouge X ou sélectionnez et appuyez sur Suppr</li>
+<li>Ajustez l'intensité du flou avec le curseur</li>
+<li>Cliquez sur Traiter la vidéo pour générer la version floutée</li>
 </ol></div>
-<div><h3 class="font-semibold text-green-600">📱 Sur mobile :</h3>
+<div><h3 class="font-semibold text-green-600 mb-2">Sur mobile et tablette</h3>
 <ol class="list-decimal list-inside ml-2 space-y-1">
 <li>Importez votre vidéo</li>
-<li>Touchez + glissez pour créer des ovales</li>
-<li>Touchez pour sélectionner/ajuster</li>
-<li>✕ pour supprimer</li>
-<li>Ajustez le flou et traitez</li>
+<li>Touchez la vidéo et glissez pour créer des ovales sur les visages</li>
+<li>Touchez un ovale pour le sélectionner puis ajustez sa taille et position</li>
+<li>Touchez le X rouge pour supprimer un ovale</li>
+<li>Ajustez l'intensité du flou</li>
+<li>Touchez Traiter la vidéo</li>
 </ol>
-<p class="text-orange-600 font-medium mt-2">⚠️ Peut être lent sur mobile</p></div>
-<div class="bg-blue-50 p-3 rounded"><p class="text-blue-800">🔒 <strong>Confidentialité :</strong> Tout est traité localement. Aucune donnée envoyée.</p></div>
+<p class="text-orange-600 font-medium mt-2">Avertissement : Le traitement peut être lent sur mobile. Pour de meilleures performances utilisez un ordinateur.</p></div>
+<div class="bg-blue-50 p-3 rounded"><p class="font-medium text-blue-800">Confidentialité</p>
+<p class="text-blue-700">Tout le traitement est effectué localement dans votre navigateur. Vos vidéos ne sont jamais envoyées sur Internet.</p></div>
 </div></div>
 
 <div id="mobile-warn" class="hidden bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-<p class="text-orange-800 font-semibold">📱 Appareil mobile détecté</p>
-<p class="text-orange-700 text-sm">Détection auto désactivée. Utilisez le mode manuel.</p>
+<p class="text-orange-800 font-semibold">Appareil mobile détecté</p>
+<p class="text-orange-700 text-sm">La détection automatique est désactivée pour préserver les performances. Utilisez le mode manuel pour créer des zones de floutage.</p>
 </div>
 
 <div id="loading" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
 <svg class="animate-spin h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-<p class="text-blue-800">Chargement du modèle...</p>
+<p class="text-blue-800">Chargement du modèle de détection...</p>
 </div>
 
 <div id="error" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-6" role="alert">
@@ -71,63 +76,66 @@
 
 <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 mb-6">
 <input type="file" id="upload" accept="video/*" class="hidden">
-<button id="upload-btn" class="btn bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-medium">📤 Choisir une vidéo</button>
-<p class="text-gray-500 mt-4 text-sm">MP4, WebM, MOV</p>
+<button id="upload-btn" class="btn bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-medium">Choisir une vidéo</button>
+<p class="text-gray-500 mt-4 text-sm">Formats acceptés : MP4, WebM, MOV</p>
 </div>
 
 <div id="edit-section" class="hidden space-y-4">
 <div class="bg-gray-50 rounded-lg p-4">
 <div class="flex justify-between mb-3 flex-wrap gap-2">
-<h2 class="text-lg font-semibold">Édition</h2>
+<h2 class="text-lg font-semibold">Édition de la vidéo</h2>
 <div class="flex gap-2">
-<button id="detect-btn" class="btn bg-purple-500 text-white px-4 py-2 rounded text-sm hover:bg-purple-600">🔍 Détecter</button>
-<button id="clear-btn" class="btn bg-gray-500 text-white px-4 py-2 rounded text-sm hover:bg-gray-600">🗑️ Effacer</button>
+<button id="detect-btn" class="btn bg-purple-500 text-white px-4 py-2 rounded text-sm hover:bg-purple-600 font-medium">Détecter les visages</button>
+<button id="clear-btn" class="btn bg-gray-500 text-white px-4 py-2 rounded text-sm hover:bg-gray-600 font-medium">Tout effacer</button>
 </div></div>
 
-<div class="video-wrap bg-black rounded overflow-hidden mb-4" id="video-container">
-<video id="video" class="w-full" controls></video>
-<canvas id="canvas"></canvas>
-<div id="zones"></div>
+<div class="video-wrap bg-black rounded overflow-hidden mb-4 relative" id="video-container">
+<video id="video" class="w-full"></video>
+<div id="draw-area" class="draw-area"></div>
+<div id="zones" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
 </div>
 
-<div><label class="block text-sm font-medium mb-1">Intensité du flou : <span id="blur-val">20</span>px</label>
+<div class="mb-3"><label class="block text-sm font-medium mb-1">Intensité du flou : <span id="blur-val">20</span> pixels</label>
 <input type="range" id="blur-slider" min="5" max="50" value="20" class="w-full"></div>
 
 <div class="text-sm bg-blue-50 p-3 rounded">
-<p class="font-medium text-blue-800">💡 Astuce :</p>
-<p><strong>Ajouter :</strong> Clic + glisser • <strong>Déplacer :</strong> Glisser le centre • <strong>Taille :</strong> Point blanc • <strong>Suppr :</strong> ✕ ou Del</p>
+<p class="font-medium text-blue-800 mb-1">Astuces</p>
+<p><strong>Ajouter une zone :</strong> Cliquez et glissez sur la vidéo</p>
+<p><strong>Déplacer :</strong> Glissez le centre de l'ovale</p>
+<p><strong>Redimensionner :</strong> Utilisez le point blanc</p>
+<p><strong>Supprimer :</strong> Cliquez sur X ou touche Suppr</p>
 </div></div>
 
-<button id="process-btn" disabled class="btn w-full bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-medium">▶️ Traiter la vidéo</button>
+<button id="process-btn" disabled class="btn w-full bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed">Traiter la vidéo</button>
 </div>
 
-<div id="progress" class="hidden mb-6">
-<div class="flex justify-between text-sm mb-1"><span>Traitement...</span><span id="prog-pct">0%</span></div>
-<div class="w-full bg-gray-200 rounded-full h-3"><div id="prog-bar" class="bg-green-500 h-full" style="width:0%"></div></div>
+<div id="progress" class="hidden mb-6 mt-6">
+<div class="flex justify-between text-sm mb-1"><span>Traitement en cours...</span><span id="prog-pct">0%</span></div>
+<div class="w-full bg-gray-200 rounded-full h-3"><div id="prog-bar" class="bg-green-500 h-full transition-all" style="width:0%"></div></div>
 </div>
 
-<div id="result" class="hidden space-y-4">
+<div id="result" class="hidden space-y-4 mt-6">
 <div class="bg-gray-50 rounded-lg p-4">
-<h2 class="text-lg font-semibold mb-3">Résultat</h2>
+<h2 class="text-lg font-semibold mb-3">Vidéo avec visages floutés</h2>
 <video id="result-video" controls class="w-full rounded"></video>
 </div>
-<button id="download-btn" class="btn w-full bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 font-medium">💾 Télécharger</button>
+<button id="download-btn" class="btn w-full bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 font-medium">Télécharger la vidéo</button>
 </div>
 
 <canvas id="proc-canvas" style="display:none"></canvas>
 </div>
 
-<footer class="mt-8 text-center text-white text-sm">🔒 Traitement local - Vos données restent privées</footer>
+<footer class="mt-8 text-center text-white text-sm">Traitement local - Vos données restent privées et sécurisées</footer>
 </div>
 
 <script>
-let model,videoURL,blurZones=[],sel=null,drawing=false,start=null,dragging=false,resizing=false,offset={x:0,y:0};
+let model=null,videoURL=null,blurZones=[],sel=null,drawing=false,start=null,dragging=false,resizing=false,offset={x:0,y:0},tempZone=null;
 const mobile=/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const $=(id)=>document.getElementById(id);
 const helpToggle=$('help-toggle'),helpContent=$('help-content'),helpIcon=$('help-icon');
 const mobileWarn=$('mobile-warn'),loading=$('loading'),error=$('error'),errorMsg=$('error-msg');
 const uploadBtn=$('upload-btn'),upload=$('upload'),editSection=$('edit-section'),video=$('video');
-const canvas=$('canvas'),zones=$('zones'),detectBtn=$('detect-btn'),clearBtn=$('clear-btn');
+const drawArea=$('draw-area'),zones=$('zones'),detectBtn=$('detect-btn'),clearBtn=$('clear-btn');
 const blurSlider=$('blur-slider'),blurVal=$('blur-val'),processBtn=$('process-btn');
 const progress=$('progress'),progBar=$('prog-bar'),progPct=$('prog-pct');
 const result=$('result'),resultVideo=$('result-video'),downloadBtn=$('download-btn');
@@ -139,18 +147,37 @@ helpIcon.style.transform=h?'rotate(0)':'rotate(180deg)';
 helpToggle.setAttribute('aria-expanded',!h);
 };
 
-if(mobile){mobileWarn.classList.remove('hidden');detectBtn.style.display='none';}
+if(mobile){
+mobileWarn.classList.remove('hidden');
+detectBtn.style.display='none';
+}
 
 async function loadModel(){
 if(mobile)return;
 loading.classList.remove('hidden');
-try{await tf.ready();model=await blazeface.load();loading.classList.add('hidden');}
-catch(e){loading.classList.add('hidden');showError('Modèle non chargé - mode manuel');detectBtn.disabled=true;}
+try{
+console.log('Chargement TensorFlow...');
+await tf.ready();
+console.log('Chargement BlazeFace...');
+model=await blazeface.load();
+console.log('Modèle chargé !');
+loading.classList.add('hidden');
+}catch(e){
+console.error('Erreur modèle:',e);
+loading.classList.add('hidden');
+showError('Modèle non chargé - utilisez le mode manuel');
+detectBtn.disabled=true;
+}
 }
 
-function showError(m){errorMsg.textContent=m;error.classList.remove('hidden');}
+function showError(m){
+errorMsg.textContent=m;
+error.classList.remove('hidden');
+setTimeout(()=>error.classList.add('hidden'),5000);
+}
 
 uploadBtn.onclick=()=>upload.click();
+
 upload.onchange=e=>{
 const f=e.target.files[0];
 if(f&&f.type.startsWith('video/')){
@@ -163,121 +190,162 @@ error.classList.add('hidden');
 blurZones=[];
 updateZones();
 video.onloadedmetadata=()=>{
-const c=video.parentElement;
-canvas.width=video.videoWidth;
-canvas.height=video.videoHeight;
-canvas.style.width=video.offsetWidth+'px';
-canvas.style.height=video.offsetHeight+'px';
-canvas.style.position='absolute';
-canvas.style.top='0';
-canvas.style.left='0';
+console.log('Vidéo chargée:',video.videoWidth,'x',video.videoHeight);
+const container=$('video-container');
+drawArea.style.width=video.offsetWidth+'px';
+drawArea.style.height=video.offsetHeight+'px';
+zones.style.width=video.offsetWidth+'px';
+zones.style.height=video.offsetHeight+'px';
 };
-}else showError('Fichier invalide');
+}else{
+showError('Fichier vidéo invalide');
+}
 };
 
 blurSlider.oninput=e=>blurVal.textContent=e.target.value;
 
 detectBtn.onclick=async()=>{
-if(!model)return;
+if(!model){showError('Modèle non disponible');return;}
 detectBtn.disabled=true;
-detectBtn.textContent='⏳ Détection...';
+const origText=detectBtn.textContent;
+detectBtn.textContent='Détection en cours...';
 try{
+video.pause();
 video.currentTime=0;
 await new Promise(r=>video.onseeked=r);
 const tc=document.createElement('canvas');
-tc.width=video.videoWidth;tc.height=video.videoHeight;
+tc.width=video.videoWidth;
+tc.height=video.videoHeight;
 const tctx=tc.getContext('2d');
 tctx.drawImage(video,0,0);
+console.log('Détection des visages...');
 const pred=await model.estimateFaces(tc,false);
+console.log('Visages détectés:',pred.length);
 pred.forEach(p=>{
 const[x1,y1]=p.topLeft,[x2,y2]=p.bottomRight;
 const w=x2-x1,h=y2-y1,pad=0.3;
-blurZones.push({x:x1-w*pad/2,y:y1-h*pad/2,width:w*(1+pad),height:h*(1+pad)});
+blurZones.push({
+x:Math.max(0,x1-w*pad/2),
+y:Math.max(0,y1-h*pad/2),
+width:w*(1+pad),
+height:h*(1+pad)
+});
 });
 updateZones();
-processBtn.disabled=!blurZones.length;
-}catch(e){showError('Erreur détection');}
+if(pred.length===0){
+showError('Aucun visage détecté. Utilisez le mode manuel.');
+}
+}catch(e){
+console.error('Erreur détection:',e);
+showError('Erreur lors de la détection');
+}
 detectBtn.disabled=false;
-detectBtn.textContent='🔍 Détecter';
+detectBtn.textContent=origText;
 };
 
-clearBtn.onclick=()=>{blurZones=[];updateZones();processBtn.disabled=true;};
+clearBtn.onclick=()=>{
+blurZones=[];
+sel=null;
+updateZones();
+};
 
 function updateZones(){
 zones.innerHTML='';
+zones.style.pointerEvents='none';
 blurZones.forEach((z,i)=>{
+if(!z||z.width<5||z.height<5)return;
 const d=document.createElement('div');
 d.className='zone'+(sel===i?' sel':'');
-const r=canvas.getBoundingClientRect();
-const sx=r.width/canvas.width,sy=r.height/canvas.height;
+const r=video.getBoundingClientRect();
+const sx=r.width/video.videoWidth;
+const sy=r.height/video.videoHeight;
 d.style.left=(z.x*sx)+'px';
 d.style.top=(z.y*sy)+'px';
 d.style.width=(z.width*sx)+'px';
 d.style.height=(z.height*sy)+'px';
+d.style.pointerEvents='auto';
 const del=document.createElement('div');
 del.className='del';
-del.textContent='✕';
-del.onclick=e=>{e.stopPropagation();blurZones.splice(i,1);updateZones();processBtn.disabled=!blurZones.length;};
+del.textContent='X';
+del.onclick=e=>{
+e.stopPropagation();
+blurZones.splice(i,1);
+sel=null;
+updateZones();
+};
 d.appendChild(del);
 const handle=document.createElement('div');
 handle.className='handle';
 d.appendChild(handle);
 d.onmousedown=d.ontouchstart=e=>{
 e.preventDefault();
+e.stopPropagation();
 sel=i;
 updateZones();
 const t=e.touches?e.touches[0]:e;
-if(e.target.classList.contains('handle')){
+const dr=d.getBoundingClientRect();
+if(e.target===handle){
 resizing=true;
-}else{
+}else if(e.target!==del){
 dragging=true;
-offset={x:t.clientX-d.offsetLeft,y:t.clientY-d.offsetTop};
+offset={x:t.clientX-dr.left,y:t.clientY-dr.top};
 }
 };
 zones.appendChild(d);
 });
-processBtn.disabled=!blurZones.length;
+processBtn.disabled=blurZones.filter(z=>z.width>=5&&z.height>=5).length===0;
 }
 
-canvas.onmousedown=canvas.ontouchstart=e=>{
+drawArea.onmousedown=drawArea.ontouchstart=e=>{
 if(dragging||resizing)return;
 e.preventDefault();
-const r=canvas.getBoundingClientRect();
-const sx=canvas.width/r.width,sy=canvas.height/r.height;
+const r=video.getBoundingClientRect();
+const sx=video.videoWidth/r.width;
+const sy=video.videoHeight/r.height;
 const t=e.touches?e.touches[0]:e;
-const x=(t.clientX-r.left)*sx,y=(t.clientY-r.top)*sy;
+const x=(t.clientX-r.left)*sx;
+const y=(t.clientY-r.top)*sy;
 drawing=true;
 start={x,y};
+tempZone={x,y,width:0,height:0};
+blurZones.push(tempZone);
+console.log('Début dessin:',x,y);
 };
 
 document.onmousemove=document.ontouchmove=e=>{
-if(drawing&&tempZone){
+if(drawing&&tempZone&&start){
 e.preventDefault();
-const r=canvas.getBoundingClientRect();
-const sx=canvas.width/r.width,sy=canvas.height/r.height;
+const r=video.getBoundingClientRect();
+const sx=video.videoWidth/r.width;
+const sy=video.videoHeight/r.height;
 const t=e.touches?e.touches[0]:e;
-const x=(t.clientX-r.left)*sx,y=(t.clientY-r.top)*sy;
-const w=Math.abs(x-start.x),h=Math.abs(y-start.y);
+const x=(t.clientX-r.left)*sx;
+const y=(t.clientY-r.top)*sy;
 tempZone.x=Math.min(start.x,x);
 tempZone.y=Math.min(start.y,y);
-tempZone.width=w;
-tempZone.height=h;
-if(w>5&&h>5)updateZones();
+tempZone.width=Math.abs(x-start.x);
+tempZone.height=Math.abs(y-start.y);
+if(tempZone.width>5&&tempZone.height>5){
+updateZones();
+}
 }else if(dragging&&sel!==null){
 e.preventDefault();
-const r=canvas.getBoundingClientRect();
-const sx=canvas.width/r.width,sy=canvas.height/r.height;
+const r=video.getBoundingClientRect();
+const sx=video.videoWidth/r.width;
+const sy=video.videoHeight/r.height;
 const t=e.touches?e.touches[0]:e;
 blurZones[sel].x=(t.clientX-offset.x-r.left)*sx;
 blurZones[sel].y=(t.clientY-offset.y-r.top)*sy;
 updateZones();
 }else if(resizing&&sel!==null){
 e.preventDefault();
-const r=canvas.getBoundingClientRect();
-const sx=canvas.width/r.width,sy=canvas.height/r.height;
+const r=video.getBoundingClientRect();
+const sx=video.videoWidth/r.width;
+const sy=video.videoHeight/r.height;
 const t=e.touches?e.touches[0]:e;
 const z=blurZones[sel];
-const nx=(t.clientX-r.left)*sx,ny=(t.clientY-r.top)*sy;
+const nx=(t.clientX-r.left)*sx;
+const ny=(t.clientY-r.top)*sy;
 z.width=Math.max(20,nx-z.x);
 z.height=Math.max(20,ny-z.y);
 updateZones();
@@ -285,52 +353,60 @@ updateZones();
 };
 
 document.onmouseup=document.ontouchend=()=>{
-if(drawing){
-if(tempZone){
-const w=tempZone.width,h=tempZone.height;
+if(drawing&&tempZone){
+const w=tempZone.width;
+const h=tempZone.height;
+console.log('Fin dessin:',w,'x',h);
 if(w<10||h<10){
 const idx=blurZones.indexOf(tempZone);
-if(idx>-1)blurZones.splice(idx,1);
+if(idx>-1){
+blurZones.splice(idx,1);
+console.log('Zone trop petite, supprimée');
+}
 }else{
 sel=blurZones.length-1;
+console.log('Zone créée:',tempZone);
 }
 tempZone=null;
 updateZones();
 }
-}
-drawing=false;dragging=false;resizing=false;start=null;
+drawing=false;
+dragging=false;
+resizing=false;
+start=null;
 };
 
 document.onkeydown=e=>{
-if(e.key==='Delete'&&sel!==null){blurZones.splice(sel,1);sel=null;updateZones();}
-};
-
-let tempZone=null;
-
-canvas.onmousedown=canvas.ontouchstart=e=>{
-if(dragging||resizing)return;
-e.preventDefault();
-const r=canvas.getBoundingClientRect();
-const sx=canvas.width/r.width,sy=canvas.height/r.height;
-const t=e.touches?e.touches[0]:e;
-const x=(t.clientX-r.left)*sx,y=(t.clientY-r.top)*sy;
-drawing=true;
-start={x,y};
-tempZone={x,y,width:0,height:0};
-blurZones.push(tempZone);
+if(e.key==='Delete'&&sel!==null){
+blurZones.splice(sel,1);
+sel=null;
+updateZones();
+}
 };
 
 processBtn.onclick=async()=>{
-if(!blurZones.length){showError('Ajoutez au moins une zone à flouter');return;}
+const validZones=blurZones.filter(z=>z.width>=5&&z.height>=5);
+if(validZones.length===0){
+showError('Ajoutez au moins une zone à flouter');
+return;
+}
+console.log('Démarrage traitement avec',validZones.length,'zones');
 processBtn.disabled=true;
 progress.classList.remove('hidden');
 error.classList.add('hidden');
 try{
-await new Promise(r=>video.onloadedmetadata=()=>{
+video.pause();
+video.currentTime=0;
+await new Promise(r=>{
+if(video.readyState>=2){
+r();
+}else{
+video.onloadedmetadata=r;
+}
+});
 procCanvas.width=video.videoWidth;
 procCanvas.height=video.videoHeight;
-r();
-});
+console.log('Canvas:',procCanvas.width,'x',procCanvas.height);
 const stream=procCanvas.captureStream(30);
 const rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:5e6});
 const chunks=[];
@@ -341,16 +417,21 @@ resultVideo.src=URL.createObjectURL(blob);
 progress.classList.add('hidden');
 result.classList.remove('hidden');
 processBtn.disabled=false;
+console.log('Traitement terminé');
 };
 rec.start();
-video.currentTime=0;
+console.log('Enregistrement démarré');
 video.play();
 const blur=blurSlider.value;
 async function frame(){
-if(video.paused||video.ended){rec.stop();return;}
+if(video.paused||video.ended){
+console.log('Fin vidéo');
+rec.stop();
+return;
+}
 ctx.filter='none';
 ctx.drawImage(video,0,0);
-blurZones.forEach(z=>{
+validZones.forEach(z=>{
 ctx.save();
 ctx.beginPath();
 ctx.ellipse(z.x+z.width/2,z.y+z.height/2,z.width/2,z.height/2,0,0,2*Math.PI);
@@ -365,7 +446,12 @@ progPct.textContent=Math.round(p)+'%';
 requestAnimationFrame(frame);
 }
 frame();
-}catch(e){showError('Erreur traitement');processBtn.disabled=false;progress.classList.add('hidden');}
+}catch(e){
+console.error('Erreur traitement:',e);
+showError('Erreur lors du traitement de la vidéo');
+processBtn.disabled=false;
+progress.classList.add('hidden');
+}
 };
 
 downloadBtn.onclick=()=>{
@@ -376,6 +462,7 @@ a.click();
 };
 
 loadModel();
+console.log('Application initialisée');
 </script>
 </body>
 </html>
