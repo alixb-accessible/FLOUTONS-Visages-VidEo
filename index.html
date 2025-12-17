@@ -3,237 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Floutage de Visages - Tracking Intelligent</title>
+    <title>Floutage de Visages - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.js"></script>
     <link rel="stylesheet" href="https://alixb-accessible.github.io/faites-mieux-toolbar/faites-mieux.css">
     <script src="https://alixb-accessible.github.io/faites-mieux-toolbar/faites-mieux.js" defer></script>
     <style>
-        body{background:linear-gradient(135deg,#4a4a4a 0%,#4a4a4a 14.28%,#22c55e 14.28%,#22c55e 28.56%,#3b82f6 28.56%,#3b82f6 42.84%,#fff 42.84%,#fff 57.12%,#fbbf24 57.12%,#fbbf24 71.4%,#dc2626 71.4%,#dc2626 85.68%,#4a4a4a 85.68%,#4a4a4a 100%);min-height:100vh}
-        .btn{transition:all .3s}.btn:focus{outline:0;box-shadow:0 0 0 4px rgba(59,130,246,.5)}.btn:disabled{opacity:.5;cursor:not-allowed}
-        @keyframes spin{to{transform:rotate(360deg)}}.animate-spin{animation:spin 1s linear infinite}
-        .face-card{border:3px solid #e5e7eb;transition:all .3s}.face-card.selected{border-color:#3b82f6;background:#eff6ff}
-        .face-thumb{width:120px;height:120px;object-fit:cover;border-radius:8px}
+        body{
+            background:linear-gradient(135deg,#4a4a4a 0%,#4a4a4a 14.28%,#22c55e 14.28%,#22c55e 28.56%,#3b82f6 28.56%,#3b82f6 42.84%,#fff 42.84%,#fff 57.12%,#fbbf24 57.12%,#fbbf24 71.4%,#dc2626 71.4%,#dc2626 85.68%,#4a4a4a 85.68%,#4a4a4a 100%);
+            min-height:100vh;
+        }
+        .app-container{background:#1a1a1a;min-height:100vh;}
+        .face-card{border:2px solid #333;transition:all .3s;background:#2a2a2a;}
+        .face-card:hover{border-color:#3b82f6;background:#333;}
+        .face-card.selected{border-color:#22c55e;background:#1e3a1e;}
+        .face-thumb{width:100px;height:100px;object-fit:cover;border-radius:8px;}
+        .btn{transition:all .3s;font-weight:600;}
+        .btn:disabled{opacity:.4;cursor:not-allowed;}
+        @keyframes spin{to{transform:rotate(360deg)}}.animate-spin{animation:spin 1s linear infinite;}
+        .video-container{background:#000;border-radius:12px;overflow:hidden;max-height:70vh;}
+        .sidebar{background:#222;border-radius:12px;padding:1.5rem;}
+        .progress-ring{transform:rotate(-90deg);}
     </style>
 </head>
-<body class="p-4 md:p-8">
-<div class="max-w-6xl mx-auto"><div class="bg-white rounded-lg shadow-2xl p-4 md:p-8">
-<h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2 text-center">Floutage Intelligent de Visages</h1>
-<p class="text-gray-600 text-center mb-6">Détection automatique avec tracking et choix sélectif</p>
+<body>
+<div class="app-container min-h-screen p-6">
+<div class="max-w-7xl mx-auto">
+
+<!-- Header -->
+<div class="text-center mb-8">
+<h1 class="text-4xl font-bold text-white mb-2">Floutage Intelligent de Visages</h1>
+<p class="text-gray-400">Détection automatique avec tracking précis et sélection personnalisée</p>
+</div>
 
 <!-- Mode d'emploi -->
-<div class="mb-6 border border-gray-300 rounded-lg">
-<button id="help-toggle" class="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-t-lg flex items-center justify-between" aria-expanded="false" aria-controls="help-content">
-<span class="font-semibold text-gray-700">Mode d'emploi</span>
-<svg id="help-icon" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+<div class="mb-6 bg-gray-800 rounded-lg">
+<button id="help-toggle" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-700 rounded-lg transition" aria-expanded="false">
+<span class="font-semibold text-white">Mode d'emploi</span>
+<svg id="help-icon" class="h-5 w-5 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
 </button>
-<div id="help-content" class="hidden px-4 py-3 text-sm space-y-3">
-<div><h3 class="font-semibold text-blue-600 mb-2">Comment ça marche</h3>
-<ol class="list-decimal list-inside ml-2 space-y-1">
-<li><strong>Importez votre vidéo</strong></li>
-<li><strong>Phase d'analyse</strong> (1-2 min) - L'application scanne toute la vidéo pour détecter tous les visages</li>
-<li><strong>Sélection</strong> - Choisissez les visages à flouter (ex: enfants oui, adultes non)</li>
-<li><strong>Traitement</strong> (2-3 min pour 10 sec) - Les visages sélectionnés sont automatiquement suivis et floutés</li>
-<li><strong>Téléchargement</strong> - Récupérez votre vidéo floutée</li>
-</ol></div>
-<div class="bg-orange-50 p-3 rounded">
-<p class="font-medium text-orange-800">Temps de traitement</p>
-<p class="text-orange-700 text-sm">Le tracking frame-par-frame est précis mais prend du temps. Pour une vidéo de 10 secondes, comptez environ 2-3 minutes. La qualité en vaut la peine !</p>
+<div id="help-content" class="hidden px-6 py-4 text-sm text-gray-300 space-y-4 border-t border-gray-700">
+<div>
+<h3 class="font-semibold text-blue-400 mb-2">Étapes</h3>
+<ol class="list-decimal list-inside space-y-1 ml-2">
+<li>Importez votre vidéo</li>
+<li>Lancez l'analyse complète (scanne toute la vidéo, 1-2 min)</li>
+<li>Sélectionnez les visages à flouter dans la galerie</li>
+<li>Ajoutez manuellement les visages non détectés si besoin</li>
+<li>Lancez le traitement avec tracking automatique (2-3 min pour 10 sec)</li>
+<li>Téléchargez votre vidéo</li>
+</ol>
 </div>
-<div class="bg-blue-50 p-3 rounded">
-<p class="font-medium text-blue-800">Confidentialité</p>
-<p class="text-blue-700 text-sm">Tout le traitement est effectué localement dans votre navigateur. Vos vidéos ne sont jamais envoyées sur Internet.</p>
-</div>
-</div></div>
-
-<!-- Avertissement mobile -->
-<div id="mobile-warn" class="hidden bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-<p class="text-orange-800 font-semibold">Appareil mobile détecté</p>
-<p class="text-orange-700 text-sm">Cette application nécessite beaucoup de ressources. Pour de meilleures performances, utilisez un ordinateur.</p>
-</div>
-
-<!-- Chargement modèle -->
-<div id="loading-model" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
-<svg class="animate-spin h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-<p class="text-blue-800">Chargement du modèle de détection...</p>
-</div>
-
-<!-- Erreurs -->
-<div id="error" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-6" role="alert">
-<p id="error-msg" class="text-red-800"></p>
-</div>
-
-<!-- Upload -->
-<div id="upload-section" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 mb-6">
-<input type="file" id="upload" accept="video/*" class="hidden" aria-label="Sélectionner une vidéo">
-<button id="upload-btn" class="btn bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-medium">Choisir une vidéo</button>
-<p class="text-gray-500 mt-4 text-sm">Formats : MP4, WebM, MOV</p>
-</div>
-
-<!-- Vidéo preview -->
-<div id="video-section" class="hidden mb-6">
-<div class="bg-gray-50 rounded-lg p-4">
-<h2 class="text-lg font-semibold mb-3">Votre vidéo</h2>
-<video id="video" controls class="w-full rounded bg-black"></video>
-<div class="mt-4">
-<p class="text-sm text-gray-600 mb-2">Durée : <span id="video-duration" class="font-semibold">-</span></p>
-<p class="text-sm text-gray-600 mb-4">Résolution : <span id="video-resolution" class="font-semibold">-</span></p>
-<button id="analyze-btn" class="btn w-full bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 font-medium">Analyser et détecter les visages</button>
+<div class="bg-blue-900/30 p-3 rounded border border-blue-700/50">
+<p class="text-blue-300 font-medium">Confidentialité garantie</p>
+<p class="text-blue-200/80 text-sm mt-1">Traitement 100% local dans votre navigateur. Aucune donnée envoyée sur Internet.</p>
 </div>
 </div>
 </div>
 
-<!-- Phase d'analyse -->
-<div id="analysis-section" class="hidden mb-6">
-<div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-<div class="flex items-center gap-3 mb-3">
-<svg class="animate-spin h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-<div class="flex-1">
-<p class="text-blue-800 font-semibold">Analyse de la vidéo en cours...</p>
-<p class="text-blue-700 text-sm" id="analysis-status">Initialisation...</p>
+<!-- Messages -->
+<div id="loading-model" class="hidden bg-blue-900/50 border border-blue-500/50 rounded-lg p-4 mb-6 flex items-center gap-3">
+<svg class="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+<p class="text-blue-200">Chargement du modèle de détection...</p>
 </div>
+
+<div id="error" class="hidden bg-red-900/50 border border-red-500/50 rounded-lg p-4 mb-6" role="alert">
+<p id="error-msg" class="text-red-200"></p>
 </div>
-<div class="w-full bg-blue-200 rounded-full h-3">
-<div id="analysis-bar" class="bg-blue-500 h-full transition-all rounded-full" style="width:0%"></div>
+
+<!-- Upload Section -->
+<div id="upload-section" class="bg-gray-800 rounded-lg p-8 text-center mb-6">
+<input type="file" id="upload" accept="video/*" class="hidden">
+<button id="upload-btn" class="btn bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-500 text-lg">Importer une vidéo</button>
+<p class="text-gray-400 mt-4 text-sm">MP4, WebM, MOV - Max 500MB</p>
 </div>
-<p class="text-xs text-blue-600 mt-2" id="analysis-percent">0%</p>
+
+<!-- Main Layout: Video + Sidebar -->
+<div id="main-section" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+<!-- Video Column (2/3) -->
+<div class="lg:col-span-2">
+<div class="video-container">
+<video id="video" controls class="w-full"></video>
+</div>
+<div class="mt-4 flex gap-3">
+<button id="analyze-btn" class="btn flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500">Analyser la vidéo</button>
+<button id="process-btn" disabled class="btn flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500">Traiter la vidéo</button>
 </div>
 </div>
 
-<!-- Sélection des visages -->
-<div id="selection-section" class="hidden mb-6">
-<div class="bg-gray-50 rounded-lg p-4">
-<div class="flex justify-between items-center mb-4">
-<h2 class="text-lg font-semibold">Sélectionnez les visages à flouter</h2>
-<div class="flex gap-2">
-<button id="add-manual" class="btn bg-orange-500 text-white px-4 py-2 rounded text-sm hover:bg-orange-600">Ajouter un visage manuellement</button>
-<button id="select-all" class="btn bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600">Tout sélectionner</button>
-<button id="select-none" class="btn bg-gray-500 text-white px-4 py-2 rounded text-sm hover:bg-gray-600">Tout désélectionner</button>
+<!-- Sidebar (1/3) -->
+<div class="sidebar">
+<div class="mb-6">
+<h3 class="text-white font-semibold mb-2 text-sm">Informations</h3>
+<p class="text-gray-400 text-xs">Durée : <span id="video-duration" class="text-white font-mono">--:--</span></p>
+<p class="text-gray-400 text-xs">Résolution : <span id="video-resolution" class="text-white font-mono">----x----</span></p>
 </div>
-</div>
-<p class="text-sm text-gray-600 mb-4"><span id="faces-count" class="font-semibold">0</span> visage(s) détecté(s). Cochez ceux que vous souhaitez flouter.</p>
-<div id="faces-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4"></div>
-<div class="mt-4">
-<label for="blur-intensity" class="block text-sm font-medium mb-1">Intensité du flou : <span id="blur-val">25</span> pixels</label>
+
+<div class="mb-6">
+<label for="blur-intensity" class="block text-white font-semibold mb-2 text-sm">Intensité du flou</label>
 <input type="range" id="blur-intensity" min="10" max="50" value="25" class="w-full" aria-label="Intensité du flou">
+<p class="text-gray-400 text-xs mt-1 text-center"><span id="blur-val" class="text-white font-mono">25</span> pixels</p>
 </div>
-<button id="process-btn" class="btn w-full bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-medium mt-4">Traiter la vidéo</button>
+
+<div id="faces-section" class="hidden">
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-white font-semibold text-sm">Visages détectés (<span id="faces-count">0</span>)</h3>
+<button id="add-manual" class="text-xs bg-orange-600 text-white px-3 py-1 rounded hover:bg-orange-500">+ Ajouter</button>
+</div>
+<div class="flex gap-2 mb-3">
+<button id="select-all" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500 flex-1">Tout</button>
+<button id="select-none" class="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-500 flex-1">Aucun</button>
+</div>
+<div id="faces-grid" class="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto"></div>
 </div>
 </div>
 
-<!-- Traitement -->
-<div id="processing-section" class="hidden mb-6">
-<div class="bg-green-50 border border-green-200 rounded-lg p-4">
-<div class="flex items-center gap-3 mb-3">
-<svg class="animate-spin h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+</div>
+
+<!-- Analysis Progress -->
+<div id="analysis-section" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
+<div class="flex items-center gap-4 mb-4">
+<svg class="animate-spin h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
 <div class="flex-1">
-<p class="text-green-800 font-semibold">Traitement de la vidéo...</p>
-<p class="text-green-700 text-sm" id="processing-status">Initialisation...</p>
+<p class="text-white font-semibold">Analyse en cours...</p>
+<p class="text-gray-400 text-sm" id="analysis-status">Préparation...</p>
 </div>
 </div>
-<div class="w-full bg-green-200 rounded-full h-3">
-<div id="processing-bar" class="bg-green-500 h-full transition-all rounded-full" style="width:0%"></div>
+<div class="w-full bg-gray-700 rounded-full h-2">
+<div id="analysis-bar" class="bg-purple-500 h-full rounded-full transition-all" style="width:0%"></div>
 </div>
-<p class="text-xs text-green-600 mt-2"><span id="processing-percent">0%</span> - Temps restant estimé : <span id="time-remaining">-</span></p>
-</div>
+<p class="text-gray-400 text-xs mt-2" id="analysis-percent">0%</p>
 </div>
 
-<!-- Résultat -->
-<div id="result-section" class="hidden">
-<div class="bg-gray-50 rounded-lg p-4">
-<h2 class="text-lg font-semibold mb-3">Vidéo traitée</h2>
-<video id="result-video" controls class="w-full rounded bg-black mb-4"></video>
-<button id="download-btn" class="btn w-full bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 font-medium">Télécharger la vidéo</button>
-<button id="restart-btn" class="btn w-full bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 font-medium mt-2">Traiter une nouvelle vidéo</button>
+<!-- Processing Progress -->
+<div id="processing-section" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
+<div class="flex items-center gap-4 mb-4">
+<svg class="animate-spin h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+<div class="flex-1">
+<p class="text-white font-semibold">Traitement avec tracking...</p>
+<p class="text-gray-400 text-sm" id="processing-status">Frame 0/0</p>
+</div>
+</div>
+<div class="w-full bg-gray-700 rounded-full h-2">
+<div id="processing-bar" class="bg-green-500 h-full rounded-full transition-all" style="width:0%"></div>
+</div>
+<p class="text-gray-400 text-xs mt-2"><span id="processing-percent">0%</span> - Reste : <span id="time-remaining">--:--</span></p>
+</div>
+
+<!-- Result -->
+<div id="result-section" class="hidden bg-gray-800 rounded-lg p-6">
+<h2 class="text-white font-semibold mb-4 text-lg">Vidéo traitée</h2>
+<video id="result-video" controls class="w-full rounded-lg bg-black mb-4"></video>
+<div class="flex gap-3">
+<button id="download-btn" class="btn flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500">Télécharger</button>
+<button id="restart-btn" class="btn flex-1 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-500">Nouvelle vidéo</button>
 </div>
 </div>
 
 <canvas id="temp-canvas" style="display:none"></canvas>
 <canvas id="process-canvas" style="display:none"></canvas>
 </div>
-
-<footer class="mt-8 text-center text-white text-sm">Traitement local - Vos données restent privées et sécurisées</footer>
 </div>
 
 <script>
-const mobile=/Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const $=id=>document.getElementById(id);
+let model=null,videoURL=null,detectedFaces=[],selectedFaceIds=new Set();
+let activeTrackers={}; // Système de tracking amélioré
 
-let model=null;
-let videoURL=null;
-let detectedFaces=[];
-let selectedFaceIds=new Set();
-let faceTrackingHistory={}; // Historique des positions pour chaque visage
-
-// Éléments DOM
-const helpToggle=$('help-toggle');
-const helpContent=$('help-content');
-const helpIcon=$('help-icon');
-const mobileWarn=$('mobile-warn');
-const loadingModel=$('loading-model');
-const error=$('error');
-const errorMsg=$('error-msg');
-const uploadBtn=$('upload-btn');
-const upload=$('upload');
-const videoSection=$('video-section');
-const video=$('video');
-const videoDuration=$('video-duration');
-const videoResolution=$('video-resolution');
-const analyzeBtn=$('analyze-btn');
-const analysisSection=$('analysis-section');
-const analysisBar=$('analysis-bar');
-const analysisPercent=$('analysis-percent');
-const analysisStatus=$('analysis-status');
-const selectionSection=$('selection-section');
-const facesCount=$('faces-count');
-const facesGrid=$('faces-grid');
-const selectAll=$('select-all');
-const selectNone=$('select-none');
-const addManual=$('add-manual');
-const blurIntensity=$('blur-intensity');
-const blurVal=$('blur-val');
-const processBtn=$('process-btn');
-const processingSection=$('processing-section');
-const processingBar=$('processing-bar');
-const processingPercent=$('processing-percent');
-const processingStatus=$('processing-status');
+// DOM
+const helpToggle=$('help-toggle'),helpContent=$('help-content'),helpIcon=$('help-icon');
+const loadingModel=$('loading-model'),error=$('error'),errorMsg=$('error-msg');
+const uploadBtn=$('upload-btn'),upload=$('upload'),mainSection=$('main-section');
+const video=$('video'),videoDuration=$('video-duration'),videoResolution=$('video-resolution');
+const analyzeBtn=$('analyze-btn'),processBtn=$('process-btn');
+const analysisSection=$('analysis-section'),analysisBar=$('analysis-bar');
+const analysisPercent=$('analysis-percent'),analysisStatus=$('analysis-status');
+const facesSection=$('faces-section'),facesCount=$('faces-count'),facesGrid=$('faces-grid');
+const selectAll=$('select-all'),selectNone=$('select-none'),addManual=$('add-manual');
+const blurIntensity=$('blur-intensity'),blurVal=$('blur-val');
+const processingSection=$('processing-section'),processingBar=$('processing-bar');
+const processingPercent=$('processing-percent'),processingStatus=$('processing-status');
 const timeRemaining=$('time-remaining');
-const resultSection=$('result-section');
-const resultVideo=$('result-video');
-const downloadBtn=$('download-btn');
-const restartBtn=$('restart-btn');
-const tempCanvas=$('temp-canvas');
-const processCanvas=$('process-canvas');
-const tempCtx=tempCanvas.getContext('2d');
-const processCtx=processCanvas.getContext('2d');
+const resultSection=$('result-section'),resultVideo=$('result-video');
+const downloadBtn=$('download-btn'),restartBtn=$('restart-btn');
+const tempCanvas=$('temp-canvas'),processCanvas=$('process-canvas');
+const tempCtx=tempCanvas.getContext('2d'),processCtx=processCanvas.getContext('2d');
 
-// Toggle aide
 helpToggle.onclick=()=>{
 const h=helpContent.classList.toggle('hidden');
 helpIcon.style.transform=h?'rotate(0)':'rotate(180deg)';
 helpToggle.setAttribute('aria-expanded',!h);
 };
 
-if(mobile){
-mobileWarn.classList.remove('hidden');
-}
-
-// Chargement du modèle
 async function loadModel(){
-if(mobile)return;
 loadingModel.classList.remove('hidden');
 try{
-console.log('Chargement TensorFlow...');
 await tf.ready();
-console.log('Chargement BlazeFace...');
 model=await blazeface.load();
-console.log('Modèle chargé!');
 loadingModel.classList.add('hidden');
+console.log('Modèle chargé');
 }catch(e){
-console.error('Erreur modèle:',e);
 loadingModel.classList.add('hidden');
-showError('Impossible de charger le modèle. Veuillez recharger la page.');
+showError('Erreur de chargement du modèle');
 }
 }
 
@@ -243,52 +216,41 @@ error.classList.remove('hidden');
 setTimeout(()=>error.classList.add('hidden'),5000);
 }
 
-// Upload
 uploadBtn.onclick=()=>upload.click();
 
 upload.onchange=e=>{
 const file=e.target.files[0];
-if(!file||!file.type.startsWith('video/')){
-showError('Veuillez sélectionner une vidéo valide');
-return;
-}
+if(!file||!file.type.startsWith('video/'))return showError('Fichier vidéo invalide');
 if(videoURL)URL.revokeObjectURL(videoURL);
 videoURL=URL.createObjectURL(file);
 video.src=videoURL;
-videoSection.classList.remove('hidden');
+mainSection.classList.remove('hidden');
+$('upload-section').classList.add('hidden');
 analysisSection.classList.add('hidden');
-selectionSection.classList.add('hidden');
+facesSection.classList.add('hidden');
 processingSection.classList.add('hidden');
 resultSection.classList.add('hidden');
 detectedFaces=[];
 selectedFaceIds.clear();
-
 video.onloadedmetadata=()=>{
 const mins=Math.floor(video.duration/60);
 const secs=Math.floor(video.duration%60);
 videoDuration.textContent=`${mins}:${secs.toString().padStart(2,'0')}`;
 videoResolution.textContent=`${video.videoWidth}x${video.videoHeight}`;
-console.log('Vidéo chargée:',video.videoWidth,'x',video.videoHeight,video.duration,'s');
 };
 };
 
 blurIntensity.oninput=()=>blurVal.textContent=blurIntensity.value;
 
-// Fonction pour calculer la distance entre deux visages
 function faceDistance(f1,f2){
 const dx=(f1.x+f1.width/2)-(f2.x+f2.width/2);
 const dy=(f1.y+f1.height/2)-(f2.y+f2.height/2);
 const sizeDiff=Math.abs(f1.width-f2.width)+Math.abs(f1.height-f2.height);
-return Math.sqrt(dx*dx+dy*dy)+sizeDiff*0.5;
+return Math.sqrt(dx*dx+dy*dy)+sizeDiff*0.3;
 }
 
-// Analyse de la vidéo
 analyzeBtn.onclick=async()=>{
-if(!model){
-showError('Modèle non chargé. Veuillez recharger la page.');
-return;
-}
-
+if(!model)return showError('Modèle non chargé');
 analyzeBtn.disabled=true;
 analysisSection.classList.remove('hidden');
 detectedFaces=[];
@@ -296,64 +258,45 @@ detectedFaces=[];
 try{
 tempCanvas.width=video.videoWidth;
 tempCanvas.height=video.videoHeight;
-
 const duration=video.duration;
-const sampleInterval=0.3; // Échantillonner toutes les 0.3 secondes (plus fréquent)
-const totalSamples=Math.ceil(duration/sampleInterval);
-let samplesProcessed=0;
+const interval=0.25; // Très fréquent pour ne rien rater
+const totalSamples=Math.ceil(duration/interval);
+let processed=0;
 
-analysisStatus.textContent=`Analyse de ${totalSamples} échantillons...`;
-
-for(let time=0;time<duration;time+=sampleInterval){
+for(let time=0;time<duration;time+=interval){
 video.currentTime=time;
 await new Promise(r=>video.onseeked=r);
-
 tempCtx.drawImage(video,0,0);
-const predictions=await model.estimateFaces(tempCanvas,false);
+const preds=await model.estimateFaces(tempCanvas,false);
 
-predictions.forEach(pred=>{
-const[x1,y1]=pred.topLeft;
-const[x2,y2]=pred.bottomRight;
-const width=x2-x1;
-const height=y2-y1;
-const padding=0.4;
-
-// Ignorer les visages trop petits (moins de 30px)
-if(width<30||height<30)return;
-
+preds.forEach(pred=>{
+const[x1,y1]=pred.topLeft,[x2,y2]=pred.bottomRight;
+const w=x2-x1,h=y2-y1;
+if(w<25||h<25)return;
+const pad=0.4;
 const face={
-x:Math.max(0,x1-width*padding/2),
-y:Math.max(0,y1-height*padding/2),
-width:width*(1+padding),
-height:height*(1+padding),
+x:Math.max(0,x1-w*pad/2),
+y:Math.max(0,y1-h*pad/2),
+width:w*(1+pad),
+height:h*(1+pad),
 time:time
 };
 
-// Vérifier si c'est un nouveau visage ou un existant
-let isNew=true;
-let minDist=Infinity;
-let closestPerson=null;
-
-for(let existing of detectedFaces){
-const dist=faceDistance(face,existing.faces[0]);
-if(dist<minDist){
-minDist=dist;
-closestPerson=existing;
+let matched=false;
+for(let p of detectedFaces){
+const avgSize=(p.faces[0].width+p.faces[0].height)/2;
+const threshold=avgSize*0.6;
+const dist=faceDistance(face,p.faces[0]);
+if(dist<threshold){
+p.faces.push(face);
+matched=true;
+break;
 }
 }
 
-// Distance seuil plus stricte pour mieux séparer les personnes
-const threshold=Math.min(face.width,face.height)*0.8;
-
-if(closestPerson&&minDist<threshold){
-closestPerson.faces.push(face);
-isNew=false;
-}
-
-if(isNew){
-const faceId=detectedFaces.length;
+if(!matched){
 detectedFaces.push({
-id:faceId,
+id:detectedFaces.length,
 faces:[face],
 thumbnail:null,
 isManual:false
@@ -361,63 +304,43 @@ isManual:false
 }
 });
 
-samplesProcessed++;
-const percent=(samplesProcessed/totalSamples)*100;
-analysisBar.style.width=percent+'%';
-analysisPercent.textContent=Math.round(percent)+'%';
-analysisStatus.textContent=`${samplesProcessed}/${totalSamples} échantillons analysés - ${predictions.length} visage(s) dans cette frame`;
+processed++;
+const pct=(processed/totalSamples)*100;
+analysisBar.style.width=pct+'%';
+analysisPercent.textContent=Math.round(pct)+'%';
+analysisStatus.textContent=`${processed}/${totalSamples} - ${preds.length} visage(s)`;
 }
 
-console.log('Visages détectés:',detectedFaces.length);
-
 if(detectedFaces.length===0){
-showError('Aucun visage détecté dans la vidéo');
+showError('Aucun visage détecté');
 analysisSection.classList.add('hidden');
 analyzeBtn.disabled=false;
 return;
 }
 
-// Générer les miniatures
-analysisStatus.textContent='Génération des miniatures...';
-for(let person of detectedFaces){
-const face=person.faces[0];
-video.currentTime=face.time;
+// Générer miniatures
+for(let p of detectedFaces){
+video.currentTime=p.faces[0].time;
 await new Promise(r=>video.onseeked=r);
 tempCtx.drawImage(video,0,0);
-
-const thumbCanvas=document.createElement('canvas');
-thumbCanvas.width=120;
-thumbCanvas.height=120;
-const thumbCtx=thumbCanvas.getContext('2d');
-
-const aspectRatio=face.width/face.height;
-let sx,sy,sw,sh;
-if(aspectRatio>1){
-sh=face.height;
-sw=sh;
-sx=face.x+(face.width-sw)/2;
-sy=face.y;
-}else{
-sw=face.width;
-sh=sw;
-sx=face.x;
-sy=face.y+(face.height-sh)/2;
-}
-
-thumbCtx.drawImage(tempCanvas,sx,sy,sw,sh,0,0,120,120);
-person.thumbnail=thumbCanvas.toDataURL();
+const tc=document.createElement('canvas');
+tc.width=100;tc.height=100;
+const tctx=tc.getContext('2d');
+const f=p.faces[0];
+tctx.drawImage(tempCanvas,f.x,f.y,f.width,f.height,0,0,100,100);
+p.thumbnail=tc.toDataURL();
 }
 
 analysisSection.classList.add('hidden');
 displayFaces();
-// Sélectionner tous les visages par défaut
 detectedFaces.forEach(p=>selectedFaceIds.add(p.id));
-selectionSection.classList.remove('hidden');
+facesSection.classList.remove('hidden');
+processBtn.disabled=false;
 analyzeBtn.disabled=false;
 
 }catch(e){
-console.error('Erreur analyse:',e);
-showError('Erreur lors de l\'analyse');
+console.error(e);
+showError('Erreur d\'analyse');
 analysisSection.classList.add('hidden');
 analyzeBtn.disabled=false;
 }
@@ -426,248 +349,70 @@ analyzeBtn.disabled=false;
 function displayFaces(){
 facesGrid.innerHTML='';
 facesCount.textContent=detectedFaces.length;
-
-detectedFaces.forEach(person=>{
+detectedFaces.forEach(p=>{
 const card=document.createElement('div');
-card.className='face-card p-3 rounded-lg cursor-pointer';
-card.onclick=()=>toggleFace(person.id,card);
-
-const img=document.createElement('img');
-img.src=person.thumbnail||'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="%23e5e7eb"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="%236b7280" font-size="14">Chargement...</text></svg>';
-img.className='face-thumb mx-auto mb-2';
-img.alt=`Visage ${person.id+1}`;
-
-const checkbox=document.createElement('input');
-checkbox.type='checkbox';
-checkbox.id=`face-${person.id}`;
-checkbox.className='mr-2';
-checkbox.checked=selectedFaceIds.has(person.id);
-
-const label=document.createElement('label');
-label.htmlFor=`face-${person.id}`;
-label.className='flex items-center justify-center cursor-pointer';
-label.appendChild(checkbox);
-const labelText=person.isManual?`Visage ${person.id+1} (manuel)`:`Visage ${person.id+1}`;
-label.appendChild(document.createTextNode(labelText));
-
-card.appendChild(img);
-card.appendChild(label);
-if(selectedFaceIds.has(person.id)){
-card.classList.add('selected');
-}
-facesGrid.appendChild(card);
-});
-}
-
-function toggleFace(id,card){
-if(selectedFaceIds.has(id)){
-selectedFaceIds.delete(id);
+card.className='face-card p-2 rounded-lg cursor-pointer'+(selectedFaceIds.has(p.id)?' selected':'');
+card.onclick=()=>{
+if(selectedFaceIds.has(p.id)){
+selectedFaceIds.delete(p.id);
 card.classList.remove('selected');
 card.querySelector('input').checked=false;
 }else{
-selectedFaceIds.add(id);
+selectedFaceIds.add(p.id);
 card.classList.add('selected');
 card.querySelector('input').checked=true;
 }
+processBtn.disabled=selectedFaceIds.size===0;
+};
+
+const img=document.createElement('img');
+img.src=p.thumbnail;
+img.className='face-thumb mx-auto mb-2';
+
+const chk=document.createElement('input');
+chk.type='checkbox';
+chk.checked=selectedFaceIds.has(p.id);
+chk.className='mr-1';
+const lbl=document.createElement('label');
+lbl.className='text-white text-xs flex items-center justify-center';
+lbl.appendChild(chk);
+lbl.appendChild(document.createTextNode(`Visage ${p.id+1}`));
+
+card.appendChild(img);
+card.appendChild(lbl);
+facesGrid.appendChild(card);
+});
+processBtn.disabled=selectedFaceIds.size===0;
 }
 
 selectAll.onclick=()=>{
 detectedFaces.forEach(p=>selectedFaceIds.add(p.id));
-document.querySelectorAll('.face-card').forEach(c=>{
-c.classList.add('selected');
-c.querySelector('input').checked=true;
-});
+displayFaces();
 };
 
 selectNone.onclick=()=>{
 selectedFaceIds.clear();
-document.querySelectorAll('.face-card').forEach(c=>{
-c.classList.remove('selected');
-c.querySelector('input').checked=false;
-});
-};
-
-// Ajout manuel de visage
-addManual.onclick=()=>{
-video.pause();
-const overlay=document.createElement('div');
-overlay.style.position='fixed';
-overlay.style.top='0';
-overlay.style.left='0';
-overlay.style.width='100%';
-overlay.style.height='100%';
-overlay.style.background='rgba(0,0,0,0.8)';
-overlay.style.zIndex='1000';
-overlay.style.display='flex';
-overlay.style.flexDirection='column';
-overlay.style.alignItems='center';
-overlay.style.justifyContent='center';
-overlay.style.padding='20px';
-
-const container=document.createElement('div');
-container.style.position='relative';
-container.style.maxWidth='90%';
-container.style.maxHeight='80%';
-
-const videoClone=document.createElement('video');
-videoClone.src=video.src;
-videoClone.currentTime=video.currentTime;
-videoClone.controls=true;
-videoClone.style.maxWidth='100%';
-videoClone.style.maxHeight='70vh';
-
-const canvas=document.createElement('canvas');
-canvas.style.position='absolute';
-canvas.style.top='0';
-canvas.style.left='0';
-canvas.style.cursor='crosshair';
-canvas.style.pointerEvents='auto';
-
-const instructions=document.createElement('div');
-instructions.className='bg-white p-4 rounded-lg mt-4 text-center';
-instructions.innerHTML='<p class="font-semibold mb-2">Cliquez et glissez sur un visage pour créer une zone de floutage</p><button id="manual-done" class="btn bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 mr-2">Terminer</button><button id="manual-cancel" class="btn bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600">Annuler</button>';
-
-container.appendChild(videoClone);
-container.appendChild(canvas);
-overlay.appendChild(container);
-overlay.appendChild(instructions);
-document.body.appendChild(overlay);
-
-videoClone.onloadedmetadata=()=>{
-canvas.width=videoClone.videoWidth;
-canvas.height=videoClone.videoHeight;
-canvas.style.width=videoClone.offsetWidth+'px';
-canvas.style.height=videoClone.offsetHeight+'px';
-};
-
-const ctx=canvas.getContext('2d');
-let drawing=false;
-let startX,startY;
-const manualFaces=[];
-
-canvas.onmousedown=canvas.ontouchstart=e=>{
-e.preventDefault();
-const rect=canvas.getBoundingClientRect();
-const scaleX=canvas.width/rect.width;
-const scaleY=canvas.height/rect.height;
-const clientX=e.touches?e.touches[0].clientX:e.clientX;
-const clientY=e.touches?e.touches[0].clientY:e.clientY;
-startX=(clientX-rect.left)*scaleX;
-startY=(clientY-rect.top)*scaleY;
-drawing=true;
-};
-
-canvas.onmousemove=canvas.ontouchmove=e=>{
-if(!drawing)return;
-e.preventDefault();
-const rect=canvas.getBoundingClientRect();
-const scaleX=canvas.width/rect.width;
-const scaleY=canvas.height/rect.height;
-const clientX=e.touches?e.touches[0].clientX:e.clientX;
-const clientY=e.touches?e.touches[0].clientY:e.clientY;
-const x=(clientX-rect.left)*scaleX;
-const y=(clientY-rect.top)*scaleY;
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-manualFaces.forEach(f=>{
-ctx.strokeStyle='#3b82f6';
-ctx.lineWidth=3;
-ctx.beginPath();
-ctx.ellipse(f.x+f.width/2,f.y+f.height/2,f.width/2,f.height/2,0,0,2*Math.PI);
-ctx.stroke();
-});
-
-const width=Math.abs(x-startX);
-const height=Math.abs(y-startY);
-ctx.strokeStyle='#22c55e';
-ctx.lineWidth=3;
-ctx.beginPath();
-ctx.ellipse(Math.min(startX,x)+width/2,Math.min(startY,y)+height/2,width/2,height/2,0,0,2*Math.PI);
-ctx.stroke();
-};
-
-canvas.onmouseup=canvas.ontouchend=e=>{
-if(!drawing)return;
-e.preventDefault();
-const rect=canvas.getBoundingClientRect();
-const scaleX=canvas.width/rect.width;
-const scaleY=canvas.height/rect.height;
-const clientX=e.changedTouches?e.changedTouches[0].clientX:e.clientX;
-const clientY=e.changedTouches?e.changedTouches[0].clientY:e.clientY;
-const x=(clientX-rect.left)*scaleX;
-const y=(clientY-rect.top)*scaleY;
-const width=Math.abs(x-startX);
-const height=Math.abs(y-startY);
-
-if(width>30&&height>30){
-manualFaces.push({
-x:Math.min(startX,x),
-y:Math.min(startY,y),
-width:width,
-height:height,
-time:videoClone.currentTime
-});
-}
-drawing=false;
-};
-
-document.getElementById('manual-done').onclick=()=>{
-manualFaces.forEach(face=>{
-const faceId=detectedFaces.length;
-detectedFaces.push({
-id:faceId,
-faces:[face],
-thumbnail:null,
-isManual:true
-});
-
-const thumbCanvas=document.createElement('canvas');
-thumbCanvas.width=120;
-thumbCanvas.height=120;
-const thumbCtx=thumbCanvas.getContext('2d');
-videoClone.currentTime=face.time;
-setTimeout(()=>{
-const tc=document.createElement('canvas');
-tc.width=videoClone.videoWidth;
-tc.height=videoClone.videoHeight;
-const tctx=tc.getContext('2d');
-tctx.drawImage(videoClone,0,0);
-thumbCtx.drawImage(tc,face.x,face.y,face.width,face.height,0,0,120,120);
-detectedFaces[faceId].thumbnail=thumbCanvas.toDataURL();
 displayFaces();
-},100);
-});
-document.body.removeChild(overlay);
-if(manualFaces.length>0){
-setTimeout(()=>displayFaces(),200);
-}
 };
 
-document.getElementById('manual-cancel').onclick=()=>{
-document.body.removeChild(overlay);
-};
-};
-
-// Traitement
+// Traitement avec VRAI tracking
 processBtn.onclick=async()=>{
-if(selectedFaceIds.size===0){
-showError('Veuillez sélectionner au moins un visage à flouter');
-return;
-}
+if(selectedFaceIds.size===0)return showError('Sélectionnez au moins un visage');
 
 processBtn.disabled=true;
-selectionSection.classList.add('hidden');
+mainSection.classList.add('hidden');
 processingSection.classList.remove('hidden');
 
-// Réinitialiser l'historique de tracking
-faceTrackingHistory={};
-detectedFaces.forEach(person=>{
-if(selectedFaceIds.has(person.id)){
-faceTrackingHistory[person.id]={
-positions:[],
-framesWithoutDetection:0,
-lastKnownPosition:null,
-velocity:{x:0,y:0}
+// Initialiser les trackers
+activeTrackers={};
+detectedFaces.forEach(p=>{
+if(selectedFaceIds.has(p.id)){
+activeTrackers[p.id]={
+lastPosition:null,
+lastSeen:0,
+confidence:1,
+velocity:{x:0,y:0},
+searchRadius:150
 };
 }
 });
@@ -675,12 +420,11 @@ velocity:{x:0,y:0}
 try{
 processCanvas.width=video.videoWidth;
 processCanvas.height=video.videoHeight;
-
 const stream=processCanvas.captureStream(30);
-const recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:4e6});
+const rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:4e6});
 const chunks=[];
-recorder.ondataavailable=e=>chunks.push(e.data);
-recorder.onstop=()=>{
+rec.ondataavailable=e=>chunks.push(e.data);
+rec.onstop=()=>{
 const blob=new Blob(chunks,{type:'video/webm'});
 resultVideo.src=URL.createObjectURL(blob);
 processingSection.classList.add('hidden');
@@ -688,136 +432,100 @@ resultSection.classList.remove('hidden');
 processBtn.disabled=false;
 };
 
-recorder.start();
+rec.start();
 video.currentTime=0;
 await new Promise(r=>video.onseeked=r);
 video.play();
 
 const blur=parseInt(blurIntensity.value);
 const startTime=Date.now();
-let frameCount=0;
+let frameNum=0;
 
 async function processFrame(){
 if(video.paused||video.ended){
-recorder.stop();
-console.log('Traitement terminé');
+rec.stop();
 return;
 }
 
-frameCount++;
-
+frameNum++;
 processCtx.filter='none';
 processCtx.drawImage(video,0,0);
-
 tempCtx.drawImage(video,0,0);
-const predictions=await model.estimateFaces(tempCanvas,false);
+const preds=await model.estimateFaces(tempCanvas,false);
 
-// Map des visages détectés dans cette frame
-const detectedThisFrame=new Set();
-
-predictions.forEach(pred=>{
-const[x1,y1]=pred.topLeft;
-const[x2,y2]=pred.bottomRight;
-const width=x2-x1;
-const height=y2-y1;
-const padding=0.4;
-
-const currentFace={
-x:Math.max(0,x1-width*padding/2),
-y:Math.max(0,y1-height*padding/2),
-width:width*(1+padding),
-height:height*(1+padding)
+// Créer une liste des visages détectés
+const currentFaces=preds.map(pred=>{
+const[x1,y1]=pred.topLeft,[x2,y2]=pred.bottomRight;
+const w=x2-x1,h=y2-y1,pad=0.4;
+return {
+x:Math.max(0,x1-w*pad/2),
+y:Math.max(0,y1-h*pad/2),
+width:w*(1+pad),
+height:h*(1+pad)
 };
-
-// Matcher avec les visages sélectionnés en utilisant la dernière position connue
-let bestMatch=null;
-let bestDist=Infinity;
-
-for(let personId of selectedFaceIds){
-const history=faceTrackingHistory[personId];
-
-// Si on a une position connue, comparer avec celle-ci
-if(history.lastKnownPosition){
-const dist=faceDistance(currentFace,history.lastKnownPosition);
-// Seuil adaptatif basé sur la taille du visage
-const threshold=Math.max(history.lastKnownPosition.width,history.lastKnownPosition.height)*1.5;
-if(dist<threshold&&dist<bestDist){
-bestDist=dist;
-bestMatch=personId;
-}
-}else{
-// Sinon, comparer avec les positions initiales
-const person=detectedFaces.find(p=>p.id===personId);
-if(!person)continue;
-let minDist=Infinity;
-for(let knownFace of person.faces){
-const dist=faceDistance(currentFace,knownFace);
-if(dist<minDist)minDist=dist;
-}
-const threshold=Math.max(currentFace.width,currentFace.height)*2;
-if(minDist<threshold&&minDist<bestDist){
-bestDist=minDist;
-bestMatch=personId;
-}
-}
-}
-
-if(bestMatch!==null){
-detectedThisFrame.add(bestMatch);
-const history=faceTrackingHistory[bestMatch];
-
-// Calculer la vélocité
-if(history.lastKnownPosition){
-history.velocity={
-x:(currentFace.x-history.lastKnownPosition.x),
-y:(currentFace.y-history.lastKnownPosition.y)
-};
-}
-
-// Mettre à jour l'historique
-history.lastKnownPosition={...currentFace};
-history.framesWithoutDetection=0;
-history.positions.push({...currentFace});
-if(history.positions.length>10)history.positions.shift();
-
-// Appliquer le flou
-processCtx.save();
-processCtx.beginPath();
-const cx=currentFace.x+currentFace.width/2;
-const cy=currentFace.y+currentFace.height/2;
-processCtx.ellipse(cx,cy,currentFace.width/2,currentFace.height/2,0,0,2*Math.PI);
-processCtx.clip();
-processCtx.filter=`blur(${blur}px)`;
-processCtx.drawImage(video,0,0);
-processCtx.restore();
-}
 });
 
-// Gérer les visages non détectés (anti-saut)
-for(let personId of selectedFaceIds){
-if(detectedThisFrame.has(personId))continue;
+// Matcher et appliquer le flou
+const matched=new Set();
+for(let id of selectedFaceIds){
+const tracker=activeTrackers[id];
+const person=detectedFaces.find(p=>p.id===id);
+if(!person)continue;
 
-const history=faceTrackingHistory[personId];
-if(!history||!history.lastKnownPosition)continue;
+let bestFace=null;
+let bestDist=Infinity;
 
-history.framesWithoutDetection++;
+// Chercher le meilleur match
+for(let cf of currentFaces){
+if(matched.has(cf))continue;
 
-// Si le visage n'a pas été détecté depuis moins de 15 frames, on continue de flouter
-if(history.framesWithoutDetection<15){
-// Prédire la position avec la vélocité
-const predictedFace={
-x:history.lastKnownPosition.x+history.velocity.x*history.framesWithoutDetection,
-y:history.lastKnownPosition.y+history.velocity.y*history.framesWithoutDetection,
-width:history.lastKnownPosition.width,
-height:history.lastKnownPosition.height
+let dist;
+if(tracker.lastPosition){
+dist=faceDistance(cf,tracker.lastPosition);
+// Dans le rayon de recherche?
+if(dist>tracker.searchRadius)continue;
+}else{
+// Première frame: comparer avec base
+dist=Math.min(...person.faces.map(f=>faceDistance(cf,f)));
+}
+
+if(dist<bestDist){
+bestDist=dist;
+bestFace=cf;
+}
+}
+
+let faceToBlur=null;
+
+if(bestFace){
+// Match trouvé
+matched.add(bestFace);
+tracker.lastPosition={...bestFace};
+tracker.lastSeen=frameNum;
+tracker.confidence=Math.min(1,tracker.confidence+0.1);
+if(tracker.lastPosition.vx!==undefined){
+tracker.velocity.x=bestFace.x-tracker.lastPosition.x;
+tracker.velocity.y=bestFace.y-tracker.lastPosition.y;
+}
+faceToBlur=bestFace;
+tracker.searchRadius=Math.max(bestFace.width,bestFace.height)*2;
+}else if(tracker.lastPosition&&(frameNum-tracker.lastSeen)<20){
+// Prédiction
+tracker.confidence*=0.9;
+if(tracker.confidence>0.3){
+faceToBlur={
+x:tracker.lastPosition.x+tracker.velocity.x*1.5,
+y:tracker.lastPosition.y+tracker.velocity.y*1.5,
+width:tracker.lastPosition.width,
+height:tracker.lastPosition.height
 };
+}
+}
 
-// Appliquer le flou à la position prédite
+if(faceToBlur){
 processCtx.save();
 processCtx.beginPath();
-const cx=predictedFace.x+predictedFace.width/2;
-const cy=predictedFace.y+predictedFace.height/2;
-processCtx.ellipse(cx,cy,predictedFace.width/2,predictedFace.height/2,0,0,2*Math.PI);
+processCtx.ellipse(faceToBlur.x+faceToBlur.width/2,faceToBlur.y+faceToBlur.height/2,faceToBlur.width/2,faceToBlur.height/2,0,0,2*Math.PI);
 processCtx.clip();
 processCtx.filter=`blur(${blur}px)`;
 processCtx.drawImage(video,0,0);
@@ -825,17 +533,14 @@ processCtx.restore();
 }
 }
 
-const progress=(video.currentTime/video.duration)*100;
-processingBar.style.width=progress+'%';
-processingPercent.textContent=Math.round(progress)+'%';
-
+const pct=(video.currentTime/video.duration)*100;
+processingBar.style.width=pct+'%';
+processingPercent.textContent=Math.round(pct)+'%';
 const elapsed=(Date.now()-startTime)/1000;
-const totalEstimated=elapsed/(progress/100);
-const remaining=Math.max(0,totalEstimated-elapsed);
-const mins=Math.floor(remaining/60);
-const secs=Math.floor(remaining%60);
-timeRemaining.textContent=`${mins}:${secs.toString().padStart(2,'0')}`;
-processingStatus.textContent=`Frame ${frameCount}/${Math.floor(video.duration*30)} - ${selectedFaceIds.size} visage(s) tracké(s)`;
+const remaining=Math.max(0,(elapsed/(pct/100))-elapsed);
+const m=Math.floor(remaining/60),s=Math.floor(remaining%60);
+timeRemaining.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+processingStatus.textContent=`Frame ${frameNum}/${Math.floor(video.duration*30)}`;
 
 requestAnimationFrame(processFrame);
 }
@@ -843,10 +548,10 @@ requestAnimationFrame(processFrame);
 processFrame();
 
 }catch(e){
-console.error('Erreur traitement:',e);
-showError('Erreur lors du traitement');
+console.error(e);
+showError('Erreur de traitement');
 processingSection.classList.add('hidden');
-selectionSection.classList.remove('hidden');
+mainSection.classList.remove('hidden');
 processBtn.disabled=false;
 }
 };
@@ -860,8 +565,8 @@ a.click();
 
 restartBtn.onclick=()=>{
 resultSection.classList.add('hidden');
-videoSection.classList.add('hidden');
-document.getElementById('upload-section').classList.remove('hidden');
+mainSection.classList.add('hidden');
+$('upload-section').classList.remove('hidden');
 if(videoURL)URL.revokeObjectURL(videoURL);
 videoURL=null;
 detectedFaces=[];
@@ -871,7 +576,6 @@ upload.value='';
 };
 
 loadModel();
-console.log('Application initialisée');
 </script>
 </body>
 </html>
