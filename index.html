@@ -90,39 +90,44 @@
 </div></div>
 
 <div class="video-wrap bg-black rounded overflow-hidden mb-4 relative" id="video-container">
-<video id="video" class="w-full" controls></video>
-<div id="draw-area" class="draw-area"></div>
-<div id="zones" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+<video id="video" class="w-full" controls style="position:relative;z-index:1"></video>
+<div id="draw-area" class="draw-area" style="pointer-events:none"></div>
+<div id="zones" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10"></div>
 </div>
 
 <div class="mb-3"><label class="block text-sm font-medium mb-1">Intensité du flou : <span id="blur-val">20</span> pixels</label>
 <input type="range" id="blur-slider" min="5" max="50" value="20" class="w-full"></div>
 
 <div class="mb-3">
-<label class="block text-sm font-medium mb-2">Qualité du traitement</label>
+<label for="quality-fast" class="block text-sm font-medium mb-2">Qualité du traitement</label>
 <div class="space-y-2">
-<label class="flex items-center cursor-pointer">
-<input type="radio" name="quality" value="fast" class="mr-2">
+<label for="quality-fast" class="flex items-center cursor-pointer">
+<input type="radio" name="quality" id="quality-fast" value="fast" class="mr-2">
 <span class="text-sm"><strong>Rapide</strong> - 15 fps, résolution réduite (2-3x plus rapide)</span>
 </label>
-<label class="flex items-center cursor-pointer">
-<input type="radio" name="quality" value="balanced" checked class="mr-2">
+<label for="quality-balanced" class="flex items-center cursor-pointer">
+<input type="radio" name="quality" id="quality-balanced" value="balanced" checked class="mr-2">
 <span class="text-sm"><strong>Équilibré</strong> - 20 fps, bonne qualité (recommandé)</span>
 </label>
-<label class="flex items-center cursor-pointer">
-<input type="radio" name="quality" value="high" class="mr-2">
+<label for="quality-high" class="flex items-center cursor-pointer">
+<input type="radio" name="quality" id="quality-high" value="high" class="mr-2">
 <span class="text-sm"><strong>Haute qualité</strong> - 30 fps, qualité maximale (plus lent)</span>
 </label>
 </div>
-<p id="time-estimate" class="text-xs text-gray-500 mt-2"></p>
+<p id="time-estimate" class="text-xs text-gray-500 mt-2" aria-live="polite"></p>
 </div>
 
 <div class="text-sm bg-blue-50 p-3 rounded">
 <p class="font-medium text-blue-800 mb-1">Astuces</p>
+<p><strong>Mode édition :</strong> Cliquez sur le bouton ci-dessous pour activer le mode dessin</p>
+<button id="toggle-draw" class="mt-2 btn bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600">Activer le mode dessin</button>
+<div id="draw-tips" class="hidden mt-2">
 <p><strong>Ajouter une zone :</strong> Cliquez et glissez sur la vidéo</p>
 <p><strong>Déplacer :</strong> Glissez le centre de l'ovale</p>
 <p><strong>Redimensionner :</strong> Utilisez le point blanc</p>
 <p><strong>Supprimer :</strong> Cliquez sur X ou touche Suppr</p>
+<button id="toggle-draw-off" class="mt-2 btn bg-gray-500 text-white px-4 py-2 rounded text-sm hover:bg-gray-600">Désactiver le mode dessin</button>
+</div>
 </div></div>
 
 <button id="process-btn" disabled class="btn w-full bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed">Traiter la vidéo</button>
@@ -161,6 +166,22 @@ const result=$('result'),resultVideo=$('result-video'),downloadBtn=$('download-b
 const procCanvas=$('proc-canvas'),ctx=procCanvas.getContext('2d');
 const timeEstimate=$('time-estimate');
 const qualityRadios=document.querySelectorAll('input[name="quality"]');
+const toggleDraw=$('toggle-draw');
+const toggleDrawOff=$('toggle-draw-off');
+const drawTips=$('draw-tips');
+
+toggleDraw.onclick=()=>{
+drawArea.style.pointerEvents='auto';
+drawArea.style.cursor='crosshair';
+toggleDraw.classList.add('hidden');
+drawTips.classList.remove('hidden');
+};
+
+toggleDrawOff.onclick=()=>{
+drawArea.style.pointerEvents='none';
+toggleDraw.classList.remove('hidden');
+drawTips.classList.add('hidden');
+};
 
 helpToggle.onclick=()=>{
 const h=helpContent.classList.toggle('hidden');
@@ -346,6 +367,7 @@ processBtn.disabled=blurZones.filter(z=>z.width>=5&&z.height>=5).length===0;
 drawArea.onmousedown=drawArea.ontouchstart=e=>{
 if(dragging||resizing)return;
 e.preventDefault();
+e.stopPropagation();
 const r=video.getBoundingClientRect();
 const sx=video.videoWidth/r.width;
 const sy=video.videoHeight/r.height;
@@ -357,6 +379,7 @@ start={x,y};
 tempZone={x,y,width:0,height:0};
 blurZones.push(tempZone);
 console.log('Début dessin:',x,y);
+drawArea.style.pointerEvents='auto';
 };
 
 document.onmousemove=document.ontouchmove=e=>{
@@ -416,6 +439,7 @@ console.log('Zone créée:',tempZone);
 }
 tempZone=null;
 updateZones();
+drawArea.style.pointerEvents='none';
 }
 drawing=false;
 dragging=false;
