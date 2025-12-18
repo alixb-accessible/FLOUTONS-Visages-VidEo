@@ -1,4 +1,4 @@
-# FLOUTONS-Visages-Vid-o
+# FLOUTONS-Visages-VidEo
 Floutage des visages sur les vidéo.
 
 Un guide utilisateur est intégré.
