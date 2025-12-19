@@ -1,586 +1,469 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Floutage de Visages - Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-    <link rel="stylesheet" href="https://alixb-accessible.github.io/faites-mieux-toolbar/faites-mieux.css">
-    <script src="https://alixb-accessible.github.io/faites-mieux-toolbar/faites-mieux.js" defer></script>
-    <style>
-        body{
-            background:linear-gradient(135deg,#4a4a4a 0%,#4a4a4a 14.28%,#22c55e 14.28%,#22c55e 28.56%,#3b82f6 28.56%,#3b82f6 42.84%,#fff 42.84%,#fff 57.12%,#fbbf24 57.12%,#fbbf24 71.4%,#dc2626 71.4%,#dc2626 85.68%,#4a4a4a 85.68%,#4a4a4a 100%);
-            min-height:100vh;
-        }
-        .app-container{min-height:100vh;}
-        .app-container.dark-mode{background:#1a1a1a;}
-        .face-card{border:2px solid #333;transition:all .3s;background:#2a2a2a;}
-        .face-card:hover{border-color:#3b82f6;background:#333;}
-        .face-card.selected{border-color:#22c55e;background:#1e3a1e;}
-        .face-thumb{width:100px;height:100px;object-fit:cover;border-radius:8px;}
-        .btn{transition:all .3s;font-weight:600;}
-        .btn:disabled{opacity:.4;cursor:not-allowed;}
-        @keyframes spin{to{transform:rotate(360deg)}}.animate-spin{animation:spin 1s linear infinite;}
-        .video-container{background:#000;border-radius:12px;overflow:hidden;max-height:70vh;display:flex;align-items:center;justify-content:center;}
-        .video-container video{max-width:100%;max-height:70vh;width:auto;height:auto;}
-        .sidebar{background:#222;border-radius:12px;padding:1.5rem;}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floutage MediaPipe</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+<link rel="stylesheet" href="https://alixb-accessible.github.io/faites-mieux-toolbar/faites-mieux.css">
+<script src="https://alixb-accessible.github.io/faites-mieux-toolbar/faites-mieux.js" defer></script>
+<style>
+body{background:linear-gradient(135deg,#4a4a4a 0%,#4a4a4a 14.28%,#22c55e 14.28%,#22c55e 28.56%,#3b82f6 28.56%,#3b82f6 42.84%,#fff 42.84%,#fff 57.12%,#fbbf24 57.12%,#fbbf24 71.4%,#dc2626 71.4%,#dc2626 85.68%,#4a4a4a 85.68%,#4a4a4a 100%);min-height:100vh}
+.app{min-height:100vh}.app.dark{background:#1a1a1a}
+.fc{border:2px solid #333;background:#2a2a2a;transition:all .3s;cursor:pointer;padding:0.5rem;border-radius:0.5rem}
+.fc:hover{border-color:#3b82f6}.fc.sel{border-color:#22c55e;background:#1e3a1e}
+.ft{width:100px;height:100px;object-fit:cover;border-radius:8px}
+.btn{transition:all .3s;font-weight:600}.btn:disabled{opacity:.4;cursor:not-allowed}
+@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite}
+.vc{background:#000;border-radius:12px;max-height:70vh;display:flex;align-items:center;justify-content:center}
+.vc video{max-width:100%;max-height:70vh;width:auto;height:auto}
+</style>
 </head>
 <body>
-<div class="app-container min-h-screen p-6">
+<div class="app min-h-screen p-6">
 <div class="max-w-7xl mx-auto">
 
 <div class="text-center mb-8">
-<h1 class="text-4xl font-bold text-white mb-2">Floutage Intelligent de Visages</h1>
-<p class="text-gray-400">Détection MediaPipe avec tracking précis</p>
+<h1 class="text-4xl font-bold text-white mb-2">Floutage avec MediaPipe</h1>
+<p class="text-gray-400">Détection plus précise et meilleur tracking</p>
 </div>
 
-<div class="mb-6 bg-gray-800 rounded-lg">
-<button id="help-toggle" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-700 rounded-lg transition" aria-expanded="false">
-<span class="font-semibold text-white">Mode d'emploi</span>
-<svg id="help-icon" class="h-5 w-5 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-</button>
-<div id="help-content" class="hidden px-6 py-4 text-sm text-gray-300 space-y-4 border-t border-gray-700">
-<div>
-<h3 class="font-semibold text-blue-400 mb-2">Nouvelle version avec MediaPipe</h3>
-<p class="mb-2">MediaPipe offre une détection plus précise et un meilleur tracking que BlazeFace.</p>
-<ol class="list-decimal list-inside space-y-1 ml-2">
-<li>Importez votre vidéo</li>
-<li>Lancez l'analyse (scanne toute la vidéo)</li>
-<li>Sélectionnez les visages à flouter</li>
-<li>Ajoutez manuellement si besoin (bouton + Manuel)</li>
-<li>Lancez le traitement avec tracking MediaPipe</li>
-<li>Téléchargez votre vidéo</li>
-</ol>
-</div>
-<div class="bg-blue-900/30 p-3 rounded border border-blue-700/50">
-<p class="text-blue-300 font-medium">Confidentialité garantie</p>
-<p class="text-blue-200/80 text-sm mt-1">100% local - Aucune donnée envoyée</p>
-</div>
-</div>
+<div id="load" class="hidden bg-blue-900/50 border border-blue-500/50 rounded-lg p-4 mb-6 flex items-center gap-3">
+<svg class="spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+<p class="text-blue-200">Chargement de MediaPipe...</p>
 </div>
 
-<div id="loading-model" class="hidden bg-blue-900/50 border border-blue-500/50 rounded-lg p-4 mb-6 flex items-center gap-3">
-<svg class="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-<p class="text-blue-200">Chargement de MediaPipe Face Detection...</p>
-</div>
+<div id="err" class="hidden bg-red-900/50 border border-red-500/50 rounded-lg p-4 mb-6"><p id="errMsg" class="text-red-200"></p></div>
 
-<div id="error" class="hidden bg-red-900/50 border border-red-500/50 rounded-lg p-4 mb-6" role="alert">
-<p id="error-msg" class="text-red-200"></p>
-</div>
-
-<div id="upload-section" class="bg-gray-800 rounded-lg p-8 text-center mb-6">
-<input type="file" id="upload" accept="video/*" class="hidden">
-<button id="upload-btn" class="btn bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-500 text-lg">Importer une vidéo</button>
+<div id="upSec" class="bg-gray-800 rounded-lg p-8 text-center mb-6">
+<input type="file" id="up" accept="video/*" class="hidden">
+<button id="upBtn" class="btn bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-500 text-lg">Importer vidéo</button>
 <p class="text-gray-400 mt-4 text-sm">MP4, WebM, MOV</p>
 </div>
 
-<div id="main-section" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-
+<div id="mainSec" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 <div class="lg:col-span-2">
-<div class="video-container">
-<video id="video" controls class="w-full"></video>
-</div>
+<div class="vc"><video id="vid" controls class="w-full"></video></div>
 <div class="mt-4 flex gap-3">
-<button id="analyze-btn" class="btn flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500">Analyser</button>
-<button id="process-btn" disabled class="btn flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500">Traiter</button>
+<button id="anaBtn" class="btn flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500">Analyser</button>
+<button id="procBtn" disabled class="btn flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500">Traiter</button>
 </div>
 </div>
 
-<div class="sidebar">
-<div class="mb-6">
-<h3 class="text-white font-semibold mb-2 text-sm">Informations</h3>
-<p class="text-gray-400 text-xs">Durée : <span id="video-duration" class="text-white font-mono">--:--</span></p>
-<p class="text-gray-400 text-xs">Résolution : <span id="video-resolution" class="text-white font-mono">----x----</span></p>
+<div class="bg-gray-800 rounded-lg p-6">
+<div class="mb-4">
+<p class="text-gray-400 text-xs">Durée: <span id="dur" class="text-white font-mono">--:--</span></p>
+<p class="text-gray-400 text-xs">Résolution: <span id="res" class="text-white font-mono">----</span></p>
 </div>
 
-<div class="mb-6">
-<label for="blur-intensity" class="block text-white font-semibold mb-2 text-sm">Intensité du flou</label>
-<input type="range" id="blur-intensity" min="10" max="50" value="25" class="w-full">
-<p class="text-gray-400 text-xs mt-1 text-center"><span id="blur-val" class="text-white font-mono">25</span> pixels</p>
+<div class="mb-4">
+<label class="block text-white font-semibold mb-2 text-sm">Intensité flou</label>
+<input type="range" id="blur" min="10" max="50" value="25" class="w-full">
+<p class="text-gray-400 text-xs mt-1 text-center"><span id="blurVal" class="text-white">25</span>px</p>
 </div>
 
-<div id="faces-section" class="hidden">
-<div class="flex justify-between items-center mb-3">
-<h3 class="text-white font-semibold text-sm">Visages (<span id="faces-count">0</span>)</h3>
-<button id="add-manual" class="text-xs bg-orange-600 text-white px-3 py-1.5 rounded hover:bg-orange-500 font-semibold">+ Manuel</button>
+<div id="fSec" class="hidden">
+<div class="flex justify-between mb-3">
+<h3 class="text-white font-semibold text-sm">Visages (<span id="fCnt">0</span>)</h3>
 </div>
 <div class="flex gap-2 mb-3">
-<button id="select-all" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500 flex-1">Tout</button>
-<button id="select-none" class="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-500 flex-1">Aucun</button>
+<button id="selAll" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500 flex-1">Tout</button>
+<button id="selNone" class="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-500 flex-1">Aucun</button>
 </div>
-<div id="faces-grid" class="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto"></div>
+<div id="fGrid" class="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto"></div>
+</div>
 </div>
 </div>
 
-</div>
-
-<div id="analysis-section" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
+<div id="anaSec" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
 <div class="flex items-center gap-4 mb-4">
-<svg class="animate-spin h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-<div class="flex-1">
-<p class="text-white font-semibold">Analyse avec MediaPipe...</p>
-<p class="text-gray-400 text-sm" id="analysis-status">Préparation...</p>
+<svg class="spin h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+<div><p class="text-white font-semibold">Analyse MediaPipe...</p><p class="text-gray-400 text-sm" id="anaSt">Init...</p></div>
 </div>
-</div>
-<div class="w-full bg-gray-700 rounded-full h-2">
-<div id="analysis-bar" class="bg-purple-500 h-full rounded-full transition-all" style="width:0%"></div>
-</div>
-<p class="text-gray-400 text-xs mt-2" id="analysis-percent">0%</p>
+<div class="w-full bg-gray-700 rounded-full h-2"><div id="anaBar" class="bg-purple-500 h-full rounded-full" style="width:0%"></div></div>
+<p class="text-gray-400 text-xs mt-2" id="anaPct">0%</p>
 </div>
 
-<div id="processing-section" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
+<div id="procSec" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
 <div class="flex items-center gap-4 mb-4">
-<svg class="animate-spin h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-<div class="flex-1">
-<p class="text-white font-semibold">Traitement MediaPipe...</p>
-<p class="text-gray-400 text-sm" id="processing-status">Frame 0/0</p>
+<svg class="spin h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+<div><p class="text-white font-semibold">Traitement...</p><p class="text-gray-400 text-sm" id="procSt">Frame 0</p></div>
 </div>
-</div>
-<div class="w-full bg-gray-700 rounded-full h-2">
-<div id="processing-bar" class="bg-green-500 h-full rounded-full transition-all" style="width:0%"></div>
-</div>
-<p class="text-gray-400 text-xs mt-2"><span id="processing-percent">0%</span> - Reste : <span id="time-remaining">--:--</span></p>
+<div class="w-full bg-gray-700 rounded-full h-2"><div id="procBar" class="bg-green-500 h-full rounded-full" style="width:0%"></div></div>
+<p class="text-gray-400 text-xs mt-2"><span id="procPct">0%</span> - <span id="remain">--:--</span></p>
 </div>
 
-<div id="result-section" class="hidden bg-gray-800 rounded-lg p-6">
+<div id="resSec" class="hidden bg-gray-800 rounded-lg p-6">
 <h2 class="text-white font-semibold mb-4 text-lg">Vidéo traitée</h2>
-<video id="result-video" controls class="w-full rounded-lg bg-black mb-4"></video>
+<video id="resVid" controls class="w-full rounded-lg bg-black mb-4"></video>
 <div class="flex gap-3">
-<button id="download-btn" class="btn flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500">Télécharger</button>
-<button id="restart-btn" class="btn flex-1 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-500">Nouvelle vidéo</button>
+<button id="dlBtn" class="btn flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500">Télécharger</button>
+<button id="rstBtn" class="btn flex-1 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-500">Nouvelle</button>
 </div>
 </div>
 
-<canvas id="temp-canvas" style="display:none"></canvas>
-<canvas id="process-canvas" style="display:none"></canvas>
+<canvas id="tc" style="display:none"></canvas>
+<canvas id="pc" style="display:none"></canvas>
 </div>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
-let faceDetection=null,videoURL=null,detectedFaces=[],selectedFaceIds=new Set();
+let fd=null,vu=null,faces=[],selIds=new Set();
 
-// DOM
-const helpToggle=$('help-toggle'),helpContent=$('help-content'),helpIcon=$('help-icon');
-const loadingModel=$('loading-model'),error=$('error'),errorMsg=$('error-msg');
-const uploadBtn=$('upload-btn'),upload=$('upload'),mainSection=$('main-section');
-const video=$('video'),videoDuration=$('video-duration'),videoResolution=$('video-resolution');
-const analyzeBtn=$('analyze-btn'),processBtn=$('process-btn');
-const analysisSection=$('analysis-section'),analysisBar=$('analysis-bar');
-const analysisPercent=$('analysis-percent'),analysisStatus=$('analysis-status');
-const facesSection=$('faces-section'),facesCount=$('faces-count'),facesGrid=$('faces-grid');
-const selectAll=$('select-all'),selectNone=$('select-none'),addManual=$('add-manual');
-const blurIntensity=$('blur-intensity'),blurVal=$('blur-val');
-const processingSection=$('processing-section'),processingBar=$('processing-bar');
-const processingPercent=$('processing-percent'),processingStatus=$('processing-status');
-const timeRemaining=$('time-remaining');
-const resultSection=$('result-section'),resultVideo=$('result-video');
-const downloadBtn=$('download-btn'),restartBtn=$('restart-btn');
-const tempCanvas=$('temp-canvas'),processCanvas=$('process-canvas');
-const tempCtx=tempCanvas.getContext('2d'),processCtx=processCanvas.getContext('2d');
-
-helpToggle.onclick=()=>{
-const h=helpContent.classList.toggle('hidden');
-helpIcon.style.transform=h?'rotate(0)':'rotate(180deg)';
-helpToggle.setAttribute('aria-expanded',!h);
-};
+const load=$('load'),err=$('err'),errMsg=$('errMsg'),upBtn=$('upBtn'),up=$('up');
+const mainSec=$('mainSec'),vid=$('vid'),dur=$('dur'),res=$('res');
+const anaBtn=$('anaBtn'),procBtn=$('procBtn');
+const anaSec=$('anaSec'),anaBar=$('anaBar'),anaPct=$('anaPct'),anaSt=$('anaSt');
+const fSec=$('fSec'),fCnt=$('fCnt'),fGrid=$('fGrid'),selAll=$('selAll'),selNone=$('selNone');
+const blur=$('blur'),blurVal=$('blurVal');
+const procSec=$('procSec'),procBar=$('procBar'),procPct=$('procPct'),procSt=$('procSt'),remain=$('remain');
+const resSec=$('resSec'),resVid=$('resVid'),dlBtn=$('dlBtn'),rstBtn=$('rstBtn');
+const tc=$('tc'),pc=$('pc'),tctx=tc.getContext('2d'),pctx=pc.getContext('2d');
 
 async function loadModel(){
-loadingModel.classList.remove('hidden');
+load.classList.remove('hidden');
 try{
-faceDetection=new FaceDetection({locateFile:(file)=>{
-return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`;
-}});
-faceDetection.setOptions({
-model:'short',
-minDetectionConfidence:0.5
-});
-await faceDetection.initialize();
-loadingModel.classList.add('hidden');
-console.log('MediaPipe chargé');
+fd=new FaceDetection({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${f}`});
+fd.setOptions({model:'short',minDetectionConfidence:0.5});
+await fd.initialize();
+load.classList.add('hidden');
+console.log('MP OK');
 }catch(e){
 console.error(e);
-loadingModel.classList.add('hidden');
-showError('Erreur de chargement de MediaPipe');
+load.classList.add('hidden');
+errMsg.textContent='Erreur MediaPipe';
+err.classList.remove('hidden');
 }
 }
 
-function showError(msg){
-errorMsg.textContent=msg;
-error.classList.remove('hidden');
-setTimeout(()=>error.classList.add('hidden'),5000);
+function showErr(m){
+errMsg.textContent=m;
+err.classList.remove('hidden');
+setTimeout(()=>err.classList.add('hidden'),5000);
 }
 
-uploadBtn.onclick=()=>upload.click();
+upBtn.onclick=()=>up.click();
 
-upload.onchange=e=>{
-const file=e.target.files[0];
-if(!file||!file.type.startsWith('video/'))return showError('Fichier vidéo invalide');
-if(videoURL)URL.revokeObjectURL(videoURL);
-videoURL=URL.createObjectURL(file);
-video.src=videoURL;
-document.querySelector('.app-container').classList.add('dark-mode');
-mainSection.classList.remove('hidden');
-$('upload-section').classList.add('hidden');
-analysisSection.classList.add('hidden');
-facesSection.classList.add('hidden');
-processingSection.classList.add('hidden');
-resultSection.classList.add('hidden');
-detectedFaces=[];
-selectedFaceIds.clear();
-video.onloadedmetadata=()=>{
-const mins=Math.floor(video.duration/60);
-const secs=Math.floor(video.duration%60);
-videoDuration.textContent=`${mins}:${secs.toString().padStart(2,'0')}`;
-videoResolution.textContent=`${video.videoWidth}x${video.videoHeight}`;
+up.onchange=e=>{
+const f=e.target.files[0];
+if(!f||!f.type.startsWith('video/'))return showErr('Fichier invalide');
+if(vu)URL.revokeObjectURL(vu);
+vu=URL.createObjectURL(f);
+vid.src=vu;
+document.querySelector('.app').classList.add('dark');
+mainSec.classList.remove('hidden');
+$('upSec').classList.add('hidden');
+anaSec.classList.add('hidden');
+fSec.classList.add('hidden');
+procSec.classList.add('hidden');
+resSec.classList.add('hidden');
+faces=[];
+selIds.clear();
+vid.onloadedmetadata=()=>{
+const m=Math.floor(vid.duration/60),s=Math.floor(vid.duration%60);
+dur.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+res.textContent=`${vid.videoWidth}x${vid.videoHeight}`;
 };
 };
 
-blurIntensity.oninput=()=>blurVal.textContent=blurIntensity.value;
+blur.oninput=()=>blurVal.textContent=blur.value;
 
-function calculateIoU(box1,box2){
-const x1=Math.max(box1.x,box2.x);
-const y1=Math.max(box1.y,box2.y);
-const x2=Math.min(box1.x+box1.width,box2.x+box2.width);
-const y2=Math.min(box1.y+box1.height,box2.y+box2.height);
-const intersect=Math.max(0,x2-x1)*Math.max(0,y2-y1);
-const area1=box1.width*box1.height;
-const area2=box2.width*box2.height;
-const union=area1+area2-intersect;
-return union>0?intersect/union:0;
+function iou(b1,b2){
+const x1=Math.max(b1.x,b2.x),y1=Math.max(b1.y,b2.y);
+const x2=Math.min(b1.x+b1.width,b2.x+b2.width),y2=Math.min(b1.y+b1.height,b2.y+b2.height);
+const i=Math.max(0,x2-x1)*Math.max(0,y2-y1);
+const u=b1.width*b1.height+b2.width*b2.height-i;
+return u>0?i/u:0;
 }
 
-analyzeBtn.onclick=async()=>{
-if(!faceDetection)return showError('MediaPipe non chargé');
-analyzeBtn.disabled=true;
-analysisSection.classList.remove('hidden');
-detectedFaces=[];
+anaBtn.onclick=async()=>{
+if(!fd)return showErr('MP non chargé');
+anaBtn.disabled=true;
+anaSec.classList.remove('hidden');
+faces=[];
 
 try{
-tempCanvas.width=video.videoWidth;
-tempCanvas.height=video.videoHeight;
-const duration=video.duration;
-const interval=0.3;
-const totalSamples=Math.ceil(duration/interval);
-let processed=0;
+tc.width=vid.videoWidth;
+tc.height=vid.videoHeight;
+const d=vid.duration,iv=0.3,tot=Math.ceil(d/iv);
+let proc=0;
 
-for(let time=0;time<duration;time+=interval){
-video.currentTime=time;
-await new Promise(r=>video.onseeked=r);
-tempCtx.drawImage(video,0,0);
+for(let t=0;t<d;t+=iv){
+vid.currentTime=t;
+await new Promise(r=>vid.onseeked=r);
+tctx.drawImage(vid,0,0);
 
-const results=await faceDetection.send({image:tempCanvas});
+const r=await fd.send({image:tc});
 
-if(results.detections){
-results.detections.forEach(det=>{
-const bbox=det.boundingBox;
-const w=bbox.width*tempCanvas.width;
-const h=bbox.height*tempCanvas.height;
-const x=bbox.xCenter*tempCanvas.width-w/2;
-const y=bbox.yCenter*tempCanvas.height-h/2;
+if(r.detections){
+r.detections.forEach(det=>{
+const bb=det.boundingBox;
+const w=bb.width*tc.width,h=bb.height*tc.height;
+const x=bb.xCenter*tc.width-w/2,y=bb.yCenter*tc.height-h/2;
 const pad=0.3;
-
 const face={
 x:Math.max(0,x-w*pad/2),
 y:Math.max(0,y-h*pad/2),
 width:w*(1+pad),
 height:h*(1+pad),
-time:time,
-score:det.score[0]
+time:t
 };
 
-let matched=false;
-for(let p of detectedFaces){
-const iou=calculateIoU(face,p.faces[0]);
-if(iou>0.4){
+let match=false;
+for(let p of faces){
+if(iou(face,p.faces[0])>0.4){
 p.faces.push(face);
-matched=true;
+match=true;
 break;
 }
 }
-
-if(!matched){
-detectedFaces.push({
-id:detectedFaces.length,
-faces:[face],
-thumbnail:null,
-isManual:false
-});
-}
+if(!match)faces.push({id:faces.length,faces:[face],thumb:null});
 });
 }
 
-processed++;
-const pct=(processed/totalSamples)*100;
-analysisBar.style.width=pct+'%';
-analysisPercent.textContent=Math.round(pct)+'%';
-analysisStatus.textContent=`${processed}/${totalSamples} - ${results.detections?results.detections.length:0} visage(s)`;
+proc++;
+const pct=(proc/tot)*100;
+anaBar.style.width=pct+'%';
+anaPct.textContent=Math.round(pct)+'%';
+anaSt.textContent=`${proc}/${tot} - ${r.detections?r.detections.length:0} visage(s)`;
 }
 
-if(detectedFaces.length===0){
-showError('Aucun visage détecté');
-analysisSection.classList.add('hidden');
-analyzeBtn.disabled=false;
+if(!faces.length){
+showErr('Aucun visage');
+anaSec.classList.add('hidden');
+anaBtn.disabled=false;
 return;
 }
 
-// Miniatures
-for(let p of detectedFaces){
-video.currentTime=p.faces[0].time;
-await new Promise(r=>video.onseeked=r);
-tempCtx.drawImage(video,0,0);
-const tc=document.createElement('canvas');
-tc.width=100;tc.height=100;
-const tctx=tc.getContext('2d');
+for(let p of faces){
+vid.currentTime=p.faces[0].time;
+await new Promise(r=>vid.onseeked=r);
+tctx.drawImage(vid,0,0);
+const c=document.createElement('canvas');
+c.width=100;c.height=100;
+const ctx=c.getContext('2d');
 const f=p.faces[0];
-tctx.drawImage(tempCanvas,f.x,f.y,f.width,f.height,0,0,100,100);
-p.thumbnail=tc.toDataURL();
+ctx.drawImage(tc,f.x,f.y,f.width,f.height,0,0,100,100);
+p.thumb=c.toDataURL();
 }
 
-analysisSection.classList.add('hidden');
-displayFaces();
-detectedFaces.forEach(p=>selectedFaceIds.add(p.id));
-facesSection.classList.remove('hidden');
-processBtn.disabled=false;
-analyzeBtn.disabled=false;
+anaSec.classList.add('hidden');
+showFaces();
+faces.forEach(p=>selIds.add(p.id));
+fSec.classList.remove('hidden');
+procBtn.disabled=false;
+anaBtn.disabled=false;
 
 }catch(e){
 console.error(e);
-showError('Erreur d\'analyse');
-analysisSection.classList.add('hidden');
-analyzeBtn.disabled=false;
+showErr('Erreur analyse');
+anaSec.classList.add('hidden');
+anaBtn.disabled=false;
 }
 };
 
-function displayFaces(){
-facesGrid.innerHTML='';
-facesCount.textContent=detectedFaces.length;
-detectedFaces.forEach(p=>{
-const card=document.createElement('div');
-card.className='face-card p-2 rounded-lg cursor-pointer'+(selectedFaceIds.has(p.id)?' selected':'');
-card.onclick=()=>{
-if(selectedFaceIds.has(p.id)){
-selectedFaceIds.delete(p.id);
-card.classList.remove('selected');
-card.querySelector('input').checked=false;
+function showFaces(){
+fGrid.innerHTML='';
+fCnt.textContent=faces.length;
+faces.forEach(p=>{
+const d=document.createElement('div');
+d.className='fc'+(selIds.has(p.id)?' sel':'');
+d.onclick=()=>{
+if(selIds.has(p.id)){
+selIds.delete(p.id);
+d.classList.remove('sel');
+d.querySelector('input').checked=false;
 }else{
-selectedFaceIds.add(p.id);
-card.classList.add('selected');
-card.querySelector('input').checked=true;
+selIds.add(p.id);
+d.classList.add('sel');
+d.querySelector('input').checked=true;
 }
-processBtn.disabled=selectedFaceIds.size===0;
+procBtn.disabled=!selIds.size;
 };
 
 const img=document.createElement('img');
-img.src=p.thumbnail;
-img.className='face-thumb mx-auto mb-2';
+img.src=p.thumb;
+img.className='ft mx-auto mb-2';
 
-const chk=document.createElement('input');
-chk.type='checkbox';
-chk.checked=selectedFaceIds.has(p.id);
-chk.className='mr-1';
-const lbl=document.createElement('label');
-lbl.className='text-white text-xs flex items-center justify-center';
-lbl.appendChild(chk);
-lbl.appendChild(document.createTextNode(p.isManual?`Visage ${p.id+1} (M)`:`Visage ${p.id+1}`));
+const ch=document.createElement('input');
+ch.type='checkbox';
+ch.checked=selIds.has(p.id);
+ch.className='mr-1';
+const lb=document.createElement('label');
+lb.className='text-white text-xs flex items-center justify-center';
+lb.appendChild(ch);
+lb.appendChild(document.createTextNode(`Visage ${p.id+1}`));
 
-card.appendChild(img);
-card.appendChild(lbl);
-facesGrid.appendChild(card);
+d.appendChild(img);
+d.appendChild(lb);
+fGrid.appendChild(d);
 });
-processBtn.disabled=selectedFaceIds.size===0;
+procBtn.disabled=!selIds.size;
 }
 
-selectAll.onclick=()=>{
-detectedFaces.forEach(p=>selectedFaceIds.add(p.id));
-displayFaces();
-};
+selAll.onclick=()=>{faces.forEach(p=>selIds.add(p.id));showFaces();};
+selNone.onclick=()=>{selIds.clear();showFaces();};
 
-selectNone.onclick=()=>{
-selectedFaceIds.clear();
-displayFaces();
-};
+procBtn.onclick=async()=>{
+if(!selIds.size)return showErr('Sélectionnez visages');
 
-// Traitement avec MediaPipe
-processBtn.onclick=async()=>{
-if(selectedFaceIds.size===0)return showError('Sélectionnez au moins un visage');
+procBtn.disabled=true;
+mainSec.classList.add('hidden');
+procSec.classList.remove('hidden');
 
-processBtn.disabled=true;
-mainSection.classList.add('hidden');
-processingSection.classList.remove('hidden');
-
-const trackers=new Map();
-selectedFaceIds.forEach(id=>{
-trackers.set(id,{
-active:false,
-lastBox:null,
-history:[],
-lostFrames:0
-});
-});
+const trk=new Map();
+selIds.forEach(id=>trk.set(id,{on:false,box:null,hist:[],lost:0}));
 
 try{
-processCanvas.width=video.videoWidth;
-processCanvas.height=video.videoHeight;
-const stream=processCanvas.captureStream(30);
-const rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:4e6});
-const chunks=[];
-rec.ondataavailable=e=>chunks.push(e.data);
+pc.width=vid.videoWidth;
+pc.height=vid.videoHeight;
+const st=pc.captureStream(30);
+const rec=new MediaRecorder(st,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:4e6});
+const ch=[];
+rec.ondataavailable=e=>ch.push(e.data);
 rec.onstop=()=>{
-const blob=new Blob(chunks,{type:'video/webm'});
-resultVideo.src=URL.createObjectURL(blob);
-processingSection.classList.add('hidden');
-resultSection.classList.remove('hidden');
-processBtn.disabled=false;
+resVid.src=URL.createObjectURL(new Blob(ch,{type:'video/webm'}));
+procSec.classList.add('hidden');
+resSec.classList.remove('hidden');
+procBtn.disabled=false;
 };
 
 rec.start();
-video.currentTime=0;
-await new Promise(r=>video.onseeked=r);
-video.play();
+vid.currentTime=0;
+await new Promise(r=>vid.onseeked=r);
+vid.play();
 
-const blur=parseInt(blurIntensity.value);
-const startTime=Date.now();
-let frameNum=0;
+const bl=parseInt(blur.value);
+const t0=Date.now();
+let fn=0;
 
-async function processFrame(){
-if(video.paused||video.ended){
-rec.stop();
-return;
-}
+async function pf(){
+if(vid.paused||vid.ended){rec.stop();return;}
 
-frameNum++;
-processCtx.filter='none';
-processCtx.drawImage(video,0,0);
-tempCtx.drawImage(video,0,0);
+fn++;
+pctx.filter='none';
+pctx.drawImage(vid,0,0);
+tctx.drawImage(vid,0,0);
 
-const results=await faceDetection.send({image:tempCanvas});
-const currentBoxes=[];
+const r=await fd.send({image:tc});
+const cb=[];
 
-if(results.detections){
-results.detections.forEach(det=>{
-const bbox=det.boundingBox;
-const w=bbox.width*tempCanvas.width;
-const h=bbox.height*tempCanvas.height;
-const x=bbox.xCenter*tempCanvas.width-w/2;
-const y=bbox.yCenter*tempCanvas.height-h/2;
+if(r.detections){
+r.detections.forEach(det=>{
+const bb=det.boundingBox;
+const w=bb.width*tc.width,h=bb.height*tc.height;
+const x=bb.xCenter*tc.width-w/2,y=bb.yCenter*tc.height-h/2;
 const pad=0.3;
-currentBoxes.push({
-x:Math.max(0,x-w*pad/2),
-y:Math.max(0,y-h*pad/2),
-width:w*(1+pad),
-height:h*(1+pad),
-score:det.score[0]
-});
+cb.push({x:Math.max(0,x-w*pad/2),y:Math.max(0,y-h*pad/2),width:w*(1+pad),height:h*(1+pad)});
 });
 }
 
-for(let[personId,tracker]of trackers){
-const person=detectedFaces.find(p=>p.id===personId);
-if(!person)continue;
+for(let[pid,tr]of trk){
+const p=faces.find(f=>f.id===pid);
+if(!p)continue;
 
-let matchedBox=null;
-let bestScore=0;
+let mb=null,bs=0;
 
-if(!tracker.active){
-for(let box of currentBoxes){
-const score=Math.max(...person.faces.map(ref=>calculateIoU(box,ref)));
-if(score>0.5&&score>bestScore){
-bestScore=score;
-matchedBox=box;
+if(!tr.on){
+for(let b of cb){
+const s=Math.max(...p.faces.map(rf=>iou(b,rf)));
+if(s>0.5&&s>bs){bs=s;mb=b;}
 }
-}
-if(matchedBox){
-tracker.active=true;
-tracker.lastBox=matchedBox;
-tracker.history=[matchedBox];
-tracker.lostFrames=0;
+if(mb){
+tr.on=true;
+tr.box=mb;
+tr.hist=[mb];
+tr.lost=0;
 }
 }else{
-for(let box of currentBoxes){
-const score=calculateIoU(box,tracker.lastBox);
-if(score>0.4&&score>bestScore){
-bestScore=score;
-matchedBox=box;
-}
+for(let b of cb){
+const s=iou(b,tr.box);
+if(s>0.4&&s>bs){bs=s;mb=b;}
 }
 
-if(matchedBox){
-const smoothed={
-x:0.75*matchedBox.x+0.25*tracker.lastBox.x,
-y:0.75*matchedBox.y+0.25*tracker.lastBox.y,
-width:0.75*matchedBox.width+0.25*tracker.lastBox.width,
-height:0.75*matchedBox.height+0.25*tracker.lastBox.height
+if(mb){
+const sm={
+x:0.75*mb.x+0.25*tr.box.x,
+y:0.75*mb.y+0.25*tr.box.y,
+width:0.75*mb.width+0.25*tr.box.width,
+height:0.75*mb.height+0.25*tr.box.height
 };
-tracker.lastBox=smoothed;
-tracker.history.push(smoothed);
-if(tracker.history.length>5)tracker.history.shift();
-tracker.lostFrames=0;
+tr.box=sm;
+tr.hist.push(sm);
+if(tr.hist.length>5)tr.hist.shift();
+tr.lost=0;
 }else{
-tracker.lostFrames++;
-if(tracker.lostFrames<20&&tracker.history.length>=2){
-const prev=tracker.history[tracker.history.length-2];
-const last=tracker.history[tracker.history.length-1];
-const vx=last.x-prev.x;
-const vy=last.y-prev.y;
-tracker.lastBox={
-x:last.x+vx*tracker.lostFrames*0.8,
-y:last.y+vy*tracker.lostFrames*0.8,
-width:last.width,
-height:last.height
-};
-}else if(tracker.lostFrames>=20){
-tracker.active=false;
+tr.lost++;
+if(tr.lost<20&&tr.hist.length>=2){
+const pv=tr.hist[tr.hist.length-2],ls=tr.hist[tr.hist.length-1];
+const vx=ls.x-pv.x,vy=ls.y-pv.y;
+tr.box={x:ls.x+vx*tr.lost*0.8,y:ls.y+vy*tr.lost*0.8,width:ls.width,height:ls.height};
+}else if(tr.lost>=20){
+tr.on=false;
 }
 }
 }
 
-if(tracker.active&&tracker.lastBox){
-const box=tracker.lastBox;
-processCtx.save();
-processCtx.beginPath();
-processCtx.ellipse(box.x+box.width/2,box.y+box.height/2,box.width/2,box.height/2,0,0,2*Math.PI);
-processCtx.clip();
-processCtx.filter=`blur(${blur}px)`;
-processCtx.drawImage(video,0,0);
-processCtx.restore();
+if(tr.on&&tr.box){
+const b=tr.box;
+pctx.save();
+pctx.beginPath();
+pctx.ellipse(b.x+b.width/2,b.y+b.height/2,b.width/2,b.height/2,0,0,2*Math.PI);
+pctx.clip();
+pctx.filter=`blur(${bl}px)`;
+pctx.drawImage(vid,0,0);
+pctx.restore();
 }
 }
 
-const pct=(video.currentTime/video.duration)*100;
-processingBar.style.width=pct+'%';
-processingPercent.textContent=Math.round(pct)+'%';
-const elapsed=(Date.now()-startTime)/1000;
-const remaining=Math.max(0,(elapsed/(pct/100))-elapsed);
-const m=Math.floor(remaining/60),s=Math.floor(remaining%60);
-timeRemaining.textContent=`${m}:${s.toString().padStart(2,'0')}`;
-const activeCount=Array.from(trackers.values()).filter(t=>t.active).length;
-processingStatus.textContent=`Frame ${frameNum} - ${activeCount}/${selectedFaceIds.size} actifs`;
+const pct=(vid.currentTime/vid.duration)*100;
+procBar.style.width=pct+'%';
+procPct.textContent=Math.round(pct)+'%';
+const el=(Date.now()-t0)/1000;
+const rm=Math.max(0,(el/(pct/100))-el);
+const m=Math.floor(rm/60),s=Math.floor(rm%60);
+remain.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+const ac=Array.from(trk.values()).filter(t=>t.on).length;
+procSt.textContent=`Frame ${fn} - ${ac}/${selIds.size} actifs`;
 
-requestAnimationFrame(processFrame);
+requestAnimationFrame(pf);
 }
 
-processFrame();
+pf();
 
 }catch(e){
 console.error(e);
-showError('Erreur de traitement');
-processingSection.classList.add('hidden');
-mainSection.classList.remove('hidden');
-processBtn.disabled=false;
+showErr('Erreur traitement');
+procSec.classList.add('hidden');
+mainSec.classList.remove('hidden');
+procBtn.disabled=false;
 }
 };
 
-downloadBtn.onclick=()=>{
+dlBtn.onclick=()=>{
 const a=document.createElement('a');
-a.href=resultVideo.src;
+a.href=resVid.src;
 a.download='video-floutee.webm';
 a.click();
 };
 
-restartBtn.onclick=()=>{
-resultSection.classList.add('hidden');
-mainSection.
+rstBtn.onclick=()=>{
+resSec.classList.add('hidden');
+mainSec.classList.add('hidden');
+document.querySelector('.app').classList.remove('dark');
+$('upSec').classList.remove('hidden');
+if(vu)URL.revokeObjectURL(vu);
+vu=null;
+faces=[];
+selIds.clear();
+vid.src='';
+up.value='';
+};
+
+loadModel();
+</script>
+</body>
+</html>
