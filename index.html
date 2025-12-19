@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Floutage de Visages - Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <link rel="stylesheet" href="https://alixb-accessible.github.io/faites-mieux-toolbar/faites-mieux.css">
     <script src="https://alixb-accessible.github.io/faites-mieux-toolbar/faites-mieux.js" defer></script>
     <style>
@@ -26,20 +26,17 @@
         .video-container{background:#000;border-radius:12px;overflow:hidden;max-height:70vh;display:flex;align-items:center;justify-content:center;}
         .video-container video{max-width:100%;max-height:70vh;width:auto;height:auto;}
         .sidebar{background:#222;border-radius:12px;padding:1.5rem;}
-        .progress-ring{transform:rotate(-90deg);}
     </style>
 </head>
 <body>
 <div class="app-container min-h-screen p-6">
 <div class="max-w-7xl mx-auto">
 
-<!-- Header -->
 <div class="text-center mb-8">
 <h1 class="text-4xl font-bold text-white mb-2">Floutage Intelligent de Visages</h1>
-<p class="text-gray-400">Détection automatique avec tracking précis et sélection personnalisée</p>
+<p class="text-gray-400">Détection MediaPipe avec tracking précis</p>
 </div>
 
-<!-- Mode d'emploi -->
 <div class="mb-6 bg-gray-800 rounded-lg">
 <button id="help-toggle" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-700 rounded-lg transition" aria-expanded="false">
 <span class="font-semibold text-white">Mode d'emploi</span>
@@ -47,55 +44,51 @@
 </button>
 <div id="help-content" class="hidden px-6 py-4 text-sm text-gray-300 space-y-4 border-t border-gray-700">
 <div>
-<h3 class="font-semibold text-blue-400 mb-2">Étapes</h3>
+<h3 class="font-semibold text-blue-400 mb-2">Nouvelle version avec MediaPipe</h3>
+<p class="mb-2">MediaPipe offre une détection plus précise et un meilleur tracking que BlazeFace.</p>
 <ol class="list-decimal list-inside space-y-1 ml-2">
 <li>Importez votre vidéo</li>
-<li>Lancez l'analyse complète (scanne toute la vidéo, 1-2 min)</li>
-<li>Sélectionnez les visages à flouter dans la galerie</li>
-<li>Ajoutez manuellement les visages non détectés si besoin</li>
-<li>Lancez le traitement avec tracking automatique (2-3 min pour 10 sec)</li>
+<li>Lancez l'analyse (scanne toute la vidéo)</li>
+<li>Sélectionnez les visages à flouter</li>
+<li>Ajoutez manuellement si besoin (bouton + Manuel)</li>
+<li>Lancez le traitement avec tracking MediaPipe</li>
 <li>Téléchargez votre vidéo</li>
 </ol>
 </div>
 <div class="bg-blue-900/30 p-3 rounded border border-blue-700/50">
 <p class="text-blue-300 font-medium">Confidentialité garantie</p>
-<p class="text-blue-200/80 text-sm mt-1">Traitement 100% local dans votre navigateur. Aucune donnée envoyée sur Internet.</p>
+<p class="text-blue-200/80 text-sm mt-1">100% local - Aucune donnée envoyée</p>
 </div>
 </div>
 </div>
 
-<!-- Messages -->
 <div id="loading-model" class="hidden bg-blue-900/50 border border-blue-500/50 rounded-lg p-4 mb-6 flex items-center gap-3">
 <svg class="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-<p class="text-blue-200">Chargement du modèle de détection...</p>
+<p class="text-blue-200">Chargement de MediaPipe Face Detection...</p>
 </div>
 
 <div id="error" class="hidden bg-red-900/50 border border-red-500/50 rounded-lg p-4 mb-6" role="alert">
 <p id="error-msg" class="text-red-200"></p>
 </div>
 
-<!-- Upload Section -->
 <div id="upload-section" class="bg-gray-800 rounded-lg p-8 text-center mb-6">
 <input type="file" id="upload" accept="video/*" class="hidden">
 <button id="upload-btn" class="btn bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-500 text-lg">Importer une vidéo</button>
-<p class="text-gray-400 mt-4 text-sm">MP4, WebM, MOV - Max 500MB</p>
+<p class="text-gray-400 mt-4 text-sm">MP4, WebM, MOV</p>
 </div>
 
-<!-- Main Layout: Video + Sidebar -->
 <div id="main-section" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
-<!-- Video Column (2/3) -->
 <div class="lg:col-span-2">
 <div class="video-container">
 <video id="video" controls class="w-full"></video>
 </div>
 <div class="mt-4 flex gap-3">
-<button id="analyze-btn" class="btn flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500">Analyser la vidéo</button>
-<button id="process-btn" disabled class="btn flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500">Traiter la vidéo</button>
+<button id="analyze-btn" class="btn flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-500">Analyser</button>
+<button id="process-btn" disabled class="btn flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500">Traiter</button>
 </div>
 </div>
 
-<!-- Sidebar (1/3) -->
 <div class="sidebar">
 <div class="mb-6">
 <h3 class="text-white font-semibold mb-2 text-sm">Informations</h3>
@@ -105,7 +98,7 @@
 
 <div class="mb-6">
 <label for="blur-intensity" class="block text-white font-semibold mb-2 text-sm">Intensité du flou</label>
-<input type="range" id="blur-intensity" min="10" max="50" value="25" class="w-full" aria-label="Intensité du flou">
+<input type="range" id="blur-intensity" min="10" max="50" value="25" class="w-full">
 <p class="text-gray-400 text-xs mt-1 text-center"><span id="blur-val" class="text-white font-mono">25</span> pixels</p>
 </div>
 
@@ -124,12 +117,11 @@
 
 </div>
 
-<!-- Analysis Progress -->
 <div id="analysis-section" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
 <div class="flex items-center gap-4 mb-4">
 <svg class="animate-spin h-6 w-6 text-purple-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
 <div class="flex-1">
-<p class="text-white font-semibold">Analyse en cours...</p>
+<p class="text-white font-semibold">Analyse avec MediaPipe...</p>
 <p class="text-gray-400 text-sm" id="analysis-status">Préparation...</p>
 </div>
 </div>
@@ -139,12 +131,11 @@
 <p class="text-gray-400 text-xs mt-2" id="analysis-percent">0%</p>
 </div>
 
-<!-- Processing Progress -->
 <div id="processing-section" class="hidden bg-gray-800 rounded-lg p-6 mb-6">
 <div class="flex items-center gap-4 mb-4">
 <svg class="animate-spin h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
 <div class="flex-1">
-<p class="text-white font-semibold">Traitement avec tracking...</p>
+<p class="text-white font-semibold">Traitement MediaPipe...</p>
 <p class="text-gray-400 text-sm" id="processing-status">Frame 0/0</p>
 </div>
 </div>
@@ -154,7 +145,6 @@
 <p class="text-gray-400 text-xs mt-2"><span id="processing-percent">0%</span> - Reste : <span id="time-remaining">--:--</span></p>
 </div>
 
-<!-- Result -->
 <div id="result-section" class="hidden bg-gray-800 rounded-lg p-6">
 <h2 class="text-white font-semibold mb-4 text-lg">Vidéo traitée</h2>
 <video id="result-video" controls class="w-full rounded-lg bg-black mb-4"></video>
@@ -171,8 +161,7 @@
 
 <script>
 const $=id=>document.getElementById(id);
-let model=null,videoURL=null,detectedFaces=[],selectedFaceIds=new Set();
-let activeTrackers={}; // Système de tracking amélioré
+let faceDetection=null,videoURL=null,detectedFaces=[],selectedFaceIds=new Set();
 
 // DOM
 const helpToggle=$('help-toggle'),helpContent=$('help-content'),helpIcon=$('help-icon');
@@ -202,13 +191,20 @@ helpToggle.setAttribute('aria-expanded',!h);
 async function loadModel(){
 loadingModel.classList.remove('hidden');
 try{
-await tf.ready();
-model=await blazeface.load();
+faceDetection=new FaceDetection({locateFile:(file)=>{
+return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`;
+}});
+faceDetection.setOptions({
+model:'short',
+minDetectionConfidence:0.5
+});
+await faceDetection.initialize();
 loadingModel.classList.add('hidden');
-console.log('Modèle chargé');
+console.log('MediaPipe chargé');
 }catch(e){
+console.error(e);
 loadingModel.classList.add('hidden');
-showError('Erreur de chargement du modèle');
+showError('Erreur de chargement de MediaPipe');
 }
 }
 
@@ -245,7 +241,6 @@ videoResolution.textContent=`${video.videoWidth}x${video.videoHeight}`;
 
 blurIntensity.oninput=()=>blurVal.textContent=blurIntensity.value;
 
-// Calcul IoU (Intersection over Union) - meilleur que distance euclidienne
 function calculateIoU(box1,box2){
 const x1=Math.max(box1.x,box2.x);
 const y1=Math.max(box1.y,box2.y);
@@ -258,18 +253,8 @@ const union=area1+area2-intersect;
 return union>0?intersect/union:0;
 }
 
-// Lissage de position
-function smoothPosition(current,previous,alpha=0.7){
-return {
-x:alpha*current.x+(1-alpha)*previous.x,
-y:alpha*current.y+(1-alpha)*previous.y,
-width:alpha*current.width+(1-alpha)*previous.width,
-height:alpha*current.height+(1-alpha)*previous.height
-};
-}
-
 analyzeBtn.onclick=async()=>{
-if(!model)return showError('Modèle non chargé');
+if(!faceDetection)return showError('MediaPipe non chargé');
 analyzeBtn.disabled=true;
 analysisSection.classList.remove('hidden');
 detectedFaces=[];
@@ -278,7 +263,7 @@ try{
 tempCanvas.width=video.videoWidth;
 tempCanvas.height=video.videoHeight;
 const duration=video.duration;
-const interval=0.25; // Très fréquent pour ne rien rater
+const interval=0.3;
 const totalSamples=Math.ceil(duration/interval);
 let processed=0;
 
@@ -286,27 +271,31 @@ for(let time=0;time<duration;time+=interval){
 video.currentTime=time;
 await new Promise(r=>video.onseeked=r);
 tempCtx.drawImage(video,0,0);
-const preds=await model.estimateFaces(tempCanvas,false);
 
-preds.forEach(pred=>{
-const[x1,y1]=pred.topLeft,[x2,y2]=pred.bottomRight;
-const w=x2-x1,h=y2-y1;
-if(w<25||h<25)return;
-const pad=0.4;
+const results=await faceDetection.send({image:tempCanvas});
+
+if(results.detections){
+results.detections.forEach(det=>{
+const bbox=det.boundingBox;
+const w=bbox.width*tempCanvas.width;
+const h=bbox.height*tempCanvas.height;
+const x=bbox.xCenter*tempCanvas.width-w/2;
+const y=bbox.yCenter*tempCanvas.height-h/2;
+const pad=0.3;
+
 const face={
-x:Math.max(0,x1-w*pad/2),
-y:Math.max(0,y1-h*pad/2),
+x:Math.max(0,x-w*pad/2),
+y:Math.max(0,y-h*pad/2),
 width:w*(1+pad),
 height:h*(1+pad),
-time:time
+time:time,
+score:det.score[0]
 };
 
 let matched=false;
 for(let p of detectedFaces){
-const avgSize=(p.faces[0].width+p.faces[0].height)/2;
-const threshold=avgSize*0.6;
-const dist=calculateIoU(face,p.faces[0]);
-if(dist>0.3){
+const iou=calculateIoU(face,p.faces[0]);
+if(iou>0.4){
 p.faces.push(face);
 matched=true;
 break;
@@ -322,12 +311,13 @@ isManual:false
 });
 }
 });
+}
 
 processed++;
 const pct=(processed/totalSamples)*100;
 analysisBar.style.width=pct+'%';
 analysisPercent.textContent=Math.round(pct)+'%';
-analysisStatus.textContent=`${processed}/${totalSamples} - ${preds.length} visage(s)`;
+analysisStatus.textContent=`${processed}/${totalSamples} - ${results.detections?results.detections.length:0} visage(s)`;
 }
 
 if(detectedFaces.length===0){
@@ -337,7 +327,7 @@ analyzeBtn.disabled=false;
 return;
 }
 
-// Générer miniatures
+// Miniatures
 for(let p of detectedFaces){
 video.currentTime=p.faces[0].time;
 await new Promise(r=>video.onseeked=r);
@@ -414,137 +404,7 @@ selectedFaceIds.clear();
 displayFaces();
 };
 
-// Ajout manuel de visage
-addManual.onclick=()=>{
-video.pause();
-const overlay=document.createElement('div');
-overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
-
-const container=document.createElement('div');
-container.style.cssText='position:relative;max-width:90%;max-height:80%;';
-
-const videoClone=document.createElement('video');
-videoClone.src=video.src;
-videoClone.currentTime=video.currentTime;
-videoClone.controls=true;
-videoClone.style.cssText='max-width:100%;max-height:70vh;';
-
-const canvas=document.createElement('canvas');
-canvas.style.cssText='position:absolute;top:0;left:0;cursor:crosshair;pointer-events:auto;';
-
-const instructions=document.createElement('div');
-instructions.className='bg-gray-800 p-4 rounded-lg mt-4 text-center';
-instructions.innerHTML='<p class="text-white font-semibold mb-3">Cliquez et glissez sur un visage pour créer une zone de floutage</p><div class="flex gap-3 justify-center"><button id="manual-done" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-500 font-semibold">Terminer</button><button id="manual-cancel" class="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-500 font-semibold">Annuler</button></div>';
-
-container.appendChild(videoClone);
-container.appendChild(canvas);
-overlay.appendChild(container);
-overlay.appendChild(instructions);
-document.body.appendChild(overlay);
-
-videoClone.onloadedmetadata=()=>{
-canvas.width=videoClone.videoWidth;
-canvas.height=videoClone.videoHeight;
-canvas.style.width=videoClone.offsetWidth+'px';
-canvas.style.height=videoClone.offsetHeight+'px';
-};
-
-const ctx=canvas.getContext('2d');
-let drawing=false,startX,startY;
-const manualFaces=[];
-
-canvas.onmousedown=canvas.ontouchstart=e=>{
-e.preventDefault();
-const rect=canvas.getBoundingClientRect();
-const sx=canvas.width/rect.width,sy=canvas.height/rect.height;
-const clientX=e.touches?e.touches[0].clientX:e.clientX;
-const clientY=e.touches?e.touches[0].clientY:e.clientY;
-startX=(clientX-rect.left)*sx;
-startY=(clientY-rect.top)*sy;
-drawing=true;
-};
-
-canvas.onmousemove=canvas.ontouchmove=e=>{
-if(!drawing)return;
-e.preventDefault();
-const rect=canvas.getBoundingClientRect();
-const sx=canvas.width/rect.width,sy=canvas.height/rect.height;
-const clientX=e.touches?e.touches[0].clientX:e.clientX;
-const clientY=e.touches?e.touches[0].clientY:e.clientY;
-const x=(clientX-rect.left)*sx,y=(clientY-rect.top)*sy;
-
-ctx.clearRect(0,0,canvas.width,canvas.height);
-manualFaces.forEach(f=>{
-ctx.strokeStyle='#3b82f6';
-ctx.lineWidth=3;
-ctx.beginPath();
-ctx.ellipse(f.x+f.width/2,f.y+f.height/2,f.width/2,f.height/2,0,0,2*Math.PI);
-ctx.stroke();
-});
-
-const w=Math.abs(x-startX),h=Math.abs(y-startY);
-ctx.strokeStyle='#22c55e';
-ctx.lineWidth=3;
-ctx.beginPath();
-ctx.ellipse(Math.min(startX,x)+w/2,Math.min(startY,y)+h/2,w/2,h/2,0,0,2*Math.PI);
-ctx.stroke();
-};
-
-canvas.onmouseup=canvas.ontouchend=e=>{
-if(!drawing)return;
-e.preventDefault();
-const rect=canvas.getBoundingClientRect();
-const sx=canvas.width/rect.width,sy=canvas.height/rect.height;
-const clientX=e.changedTouches?e.changedTouches[0].clientX:e.clientX;
-const clientY=e.changedTouches?e.changedTouches[0].clientY:e.clientY;
-const x=(clientX-rect.left)*sx,y=(clientY-rect.top)*sy;
-const w=Math.abs(x-startX),h=Math.abs(y-startY);
-
-if(w>30&&h>30){
-manualFaces.push({
-x:Math.min(startX,x),
-y:Math.min(startY,y),
-width:w,
-height:h,
-time:videoClone.currentTime
-});
-}
-drawing=false;
-};
-
-document.getElementById('manual-done').onclick=()=>{
-manualFaces.forEach(face=>{
-const faceId=detectedFaces.length;
-const tc=document.createElement('canvas');
-tc.width=100;tc.height=100;
-const tctx=tc.getContext('2d');
-videoClone.currentTime=face.time;
-setTimeout(()=>{
-const tempC=document.createElement('canvas');
-tempC.width=videoClone.videoWidth;
-tempC.height=videoClone.videoHeight;
-const tempCtx2=tempC.getContext('2d');
-tempCtx2.drawImage(videoClone,0,0);
-tctx.drawImage(tempC,face.x,face.y,face.width,face.height,0,0,100,100);
-detectedFaces.push({
-id:faceId,
-faces:[face],
-thumbnail:tc.toDataURL(),
-isManual:true
-});
-selectedFaceIds.add(faceId);
-displayFaces();
-},100);
-});
-document.body.removeChild(overlay);
-};
-
-document.getElementById('manual-cancel').onclick=()=>{
-document.body.removeChild(overlay);
-};
-};
-
-// Traitement avec VRAI tracking
+// Traitement avec MediaPipe
 processBtn.onclick=async()=>{
 if(selectedFaceIds.size===0)return showError('Sélectionnez au moins un visage');
 
@@ -552,18 +412,14 @@ processBtn.disabled=true;
 mainSection.classList.add('hidden');
 processingSection.classList.remove('hidden');
 
-// Initialiser les trackers avec historique de positions
-activeTrackers={};
-detectedFaces.forEach(p=>{
-if(selectedFaceIds.has(p.id)){
-activeTrackers[p.id]={
-positions:[],
-lastSeen:0,
-framesLost:0,
-velocity:{x:0,y:0},
-acceleration:{x:0,y:0}
-};
-}
+const trackers=new Map();
+selectedFaceIds.forEach(id=>{
+trackers.set(id,{
+active:false,
+lastBox:null,
+history:[],
+lostFrames:0
+});
 });
 
 try{
@@ -600,118 +456,93 @@ frameNum++;
 processCtx.filter='none';
 processCtx.drawImage(video,0,0);
 tempCtx.drawImage(video,0,0);
-const preds=await model.estimateFaces(tempCanvas,false);
 
-// Créer une liste des visages détectés
-const currentFaces=preds.map(pred=>{
-const[x1,y1]=pred.topLeft,[x2,y2]=pred.bottomRight;
-const w=x2-x1,h=y2-y1,pad=0.4;
-return {
-x:Math.max(0,x1-w*pad/2),
-y:Math.max(0,y1-h*pad/2),
+const results=await faceDetection.send({image:tempCanvas});
+const currentBoxes=[];
+
+if(results.detections){
+results.detections.forEach(det=>{
+const bbox=det.boundingBox;
+const w=bbox.width*tempCanvas.width;
+const h=bbox.height*tempCanvas.height;
+const x=bbox.xCenter*tempCanvas.width-w/2;
+const y=bbox.yCenter*tempCanvas.height-h/2;
+const pad=0.3;
+currentBoxes.push({
+x:Math.max(0,x-w*pad/2),
+y:Math.max(0,y-h*pad/2),
 width:w*(1+pad),
-height:h*(1+pad)
-};
+height:h*(1+pad),
+score:det.score[0]
 });
+});
+}
 
-// Matcher et appliquer le flou avec IoU
-const matched=new Set();
-for(let id of selectedFaceIds){
-const tracker=activeTrackers[id];
-const person=detectedFaces.find(p=>p.id===id);
+for(let[personId,tracker]of trackers){
+const person=detectedFaces.find(p=>p.id===personId);
 if(!person)continue;
 
-let bestFace=null;
+let matchedBox=null;
 let bestScore=0;
 
-// Prédire la position si on a un historique
-let predictedBox=null;
-if(tracker.positions.length>0){
-const last=tracker.positions[tracker.positions.length-1];
-predictedBox={
-x:last.x+tracker.velocity.x*2+tracker.acceleration.x*2,
-y:last.y+tracker.velocity.y*2+tracker.acceleration.y*2,
-width:last.width,
-height:last.height
-};
-}
-
-// Chercher le meilleur match
-for(let cf of currentFaces){
-if(matched.has(cf))continue;
-
-let score=0;
-if(predictedBox){
-// Scorer avec IoU par rapport à la prédiction
-score=calculateIoU(cf,predictedBox);
-}else{
-// Première détection: comparer avec base
-score=Math.max(...person.faces.map(f=>calculateIoU(cf,f)));
-}
-
-if(score>bestScore&&score>0.3){
+if(!tracker.active){
+for(let box of currentBoxes){
+const score=Math.max(...person.faces.map(ref=>calculateIoU(box,ref)));
+if(score>0.5&&score>bestScore){
 bestScore=score;
-bestFace=cf;
+matchedBox=box;
 }
 }
-
-let faceToBlur=null;
-
-if(bestFace){
-// Match trouvé
-matched.add(bestFace);
-tracker.framesLost=0;
-tracker.lastSeen=frameNum;
-
-// Lisser la position
-let smoothed=bestFace;
-if(tracker.positions.length>0){
-smoothed=smoothPosition(bestFace,tracker.positions[tracker.positions.length-1],0.7);
+if(matchedBox){
+tracker.active=true;
+tracker.lastBox=matchedBox;
+tracker.history=[matchedBox];
+tracker.lostFrames=0;
 }
-
-// Calculer vélocité et accélération
-if(tracker.positions.length>0){
-const prev=tracker.positions[tracker.positions.length-1];
-const newVx=smoothed.x-prev.x;
-const newVy=smoothed.y-prev.y;
-tracker.acceleration.x=newVx-tracker.velocity.x;
-tracker.acceleration.y=newVy-tracker.velocity.y;
-tracker.velocity.x=newVx;
-tracker.velocity.y=newVy;
-}
-
-tracker.positions.push(smoothed);
-if(tracker.positions.length>10)tracker.positions.shift();
-
-faceToBlur=smoothed;
-
 }else{
-// Pas de match: prédiction
-tracker.framesLost++;
+for(let box of currentBoxes){
+const score=calculateIoU(box,tracker.lastBox);
+if(score>0.4&&score>bestScore){
+bestScore=score;
+matchedBox=box;
+}
+}
 
-if(tracker.framesLost<30&&tracker.positions.length>0){
-const last=tracker.positions[tracker.positions.length-1];
-// Prédiction avec décélération
-const decayFactor=Math.max(0,1-tracker.framesLost*0.05);
-faceToBlur={
-x:last.x+tracker.velocity.x*tracker.framesLost*decayFactor,
-y:last.y+tracker.velocity.y*tracker.framesLost*decayFactor,
+if(matchedBox){
+const smoothed={
+x:0.75*matchedBox.x+0.25*tracker.lastBox.x,
+y:0.75*matchedBox.y+0.25*tracker.lastBox.y,
+width:0.75*matchedBox.width+0.25*tracker.lastBox.width,
+height:0.75*matchedBox.height+0.25*tracker.lastBox.height
+};
+tracker.lastBox=smoothed;
+tracker.history.push(smoothed);
+if(tracker.history.length>5)tracker.history.shift();
+tracker.lostFrames=0;
+}else{
+tracker.lostFrames++;
+if(tracker.lostFrames<20&&tracker.history.length>=2){
+const prev=tracker.history[tracker.history.length-2];
+const last=tracker.history[tracker.history.length-1];
+const vx=last.x-prev.x;
+const vy=last.y-prev.y;
+tracker.lastBox={
+x:last.x+vx*tracker.lostFrames*0.8,
+y:last.y+vy*tracker.lostFrames*0.8,
 width:last.width,
 height:last.height
 };
+}else if(tracker.lostFrames>=20){
+tracker.active=false;
+}
 }
 }
 
-if(faceToBlur){
+if(tracker.active&&tracker.lastBox){
+const box=tracker.lastBox;
 processCtx.save();
 processCtx.beginPath();
-processCtx.ellipse(
-faceToBlur.x+faceToBlur.width/2,
-faceToBlur.y+faceToBlur.height/2,
-faceToBlur.width/2,
-faceToBlur.height/2,
-0,0,2*Math.PI
-);
+processCtx.ellipse(box.x+box.width/2,box.y+box.height/2,box.width/2,box.height/2,0,0,2*Math.PI);
 processCtx.clip();
 processCtx.filter=`blur(${blur}px)`;
 processCtx.drawImage(video,0,0);
@@ -726,7 +557,8 @@ const elapsed=(Date.now()-startTime)/1000;
 const remaining=Math.max(0,(elapsed/(pct/100))-elapsed);
 const m=Math.floor(remaining/60),s=Math.floor(remaining%60);
 timeRemaining.textContent=`${m}:${s.toString().padStart(2,'0')}`;
-processingStatus.textContent=`Frame ${frameNum}/${Math.floor(video.duration*30)}`;
+const activeCount=Array.from(trackers.values()).filter(t=>t.active).length;
+processingStatus.textContent=`Frame ${frameNum} - ${activeCount}/${selectedFaceIds.size} actifs`;
 
 requestAnimationFrame(processFrame);
 }
@@ -751,18 +583,4 @@ a.click();
 
 restartBtn.onclick=()=>{
 resultSection.classList.add('hidden');
-mainSection.classList.add('hidden');
-document.querySelector('.app-container').classList.remove('dark-mode');
-$('upload-section').classList.remove('hidden');
-if(videoURL)URL.revokeObjectURL(videoURL);
-videoURL=null;
-detectedFaces=[];
-selectedFaceIds.clear();
-video.src='';
-upload.value='';
-};
-
-loadModel();
-</script>
-</body>
-</html>
+mainSection.
